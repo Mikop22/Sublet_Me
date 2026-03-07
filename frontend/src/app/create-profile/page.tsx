@@ -913,12 +913,36 @@ export default function CreateProfilePage() {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true);
+
+    try {
+      await fetch("/api/subletops/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: {
+            name,
+            user_type: userType,
+            city: selectedCity,
+            term: selectedTerm,
+            budget,
+            university,
+            company,
+            lifestyle_tags: selectedLifestyles,
+            roommate_vibe: selectedLifestyles[0] ?? null,
+            bio,
+          },
+        }),
+      });
+    } catch {
+      // Graceful fallback: keep onboarding UX unblocked during backend issues.
+    }
+
     setTimeout(() => {
       setIsSubmitting(false);
       setIsComplete(true);
-    }, 2000);
+    }, 1000);
   };
 
   // Validation function to check if current step is complete
