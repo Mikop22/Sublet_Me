@@ -1,0 +1,10 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+
+# local secrets/env
+backend/.env
+backend/.env.local
+frontend/.env.local
+backend/scripts/*
