@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import MagneticButton from "@/components/MagneticButton";
 
 // ————— Data —————
 const CITIES = [
@@ -363,14 +364,20 @@ function BudgetSlider({
 
 // ————— Ambient Left Panel —————
 const PANEL_MOODS = [
-  { greeting: "Hello.", accent: "#E85D4A", secondary: "#F4A261" },
-  { greeting: "Where to?", accent: "#A8B5A0", secondary: "#E85D4A" },
-  { greeting: "Be yourself.", accent: "#F4A261", secondary: "#A8B5A0" },
-  { greeting: "Almost there.", accent: "#E85D4A", secondary: "#A8B5A0" },
+  { greeting: "Hello.", accent: "#E85D4A", secondary: "#F4A261", tagline: "Your journey to the perfect sublet starts with a few details." },
+  { greeting: "Where to?", accent: "#A8B5A0", secondary: "#E85D4A", tagline: "Let's find the right city and term for your co-op." },
+  { greeting: "Be yourself.", accent: "#F4A261", secondary: "#A8B5A0", tagline: "Show roommates what makes you, you." },
+  { greeting: "Almost there.", accent: "#E85D4A", secondary: "#A8B5A0", tagline: "One photo and a few words. Then you're in." },
 ];
 
-function AmbientPanel({ step }: { step: number }) {
-  const mood = PANEL_MOODS[step];
+const PANEL_MOODS_HOST = [
+  { greeting: "Hello.", accent: "#E85D4A", secondary: "#F4A261", tagline: "Let's get your listing ready for students." },
+  { greeting: "Almost there.", accent: "#E85D4A", secondary: "#A8B5A0", tagline: "One photo and a few words. Then you're in." },
+];
+
+function AmbientPanel({ step, isHost }: { step: number; isHost: boolean }) {
+  const moods = isHost ? PANEL_MOODS_HOST : PANEL_MOODS;
+  const mood = moods[step] || moods[0];
 
   return (
     <>
@@ -456,10 +463,7 @@ function AmbientPanel({ step }: { step: number }) {
             transition={{ duration: 0.5, delay: 0.15, ease: [0.33, 1, 0.68, 1] }}
             className="text-white/20 text-sm mt-6 max-w-[260px] mx-auto leading-relaxed"
           >
-            {step === 0 && "Your journey to the perfect sublet starts with a few details."}
-            {step === 1 && "Let\u2019s find the right city and term for your co-op."}
-            {step === 2 && "Show roommates what makes you, you."}
-            {step === 3 && "One photo and a few words. Then you\u2019re in."}
+            {mood.tagline}
           </motion.p>
         </AnimatePresence>
       </div>
@@ -566,17 +570,49 @@ function StepBasics({
 
       <motion.div variants={staggerChild}>
         <FloatingInput
-          label="School email"
+          label={userType === "host" ? "Email" : "School email"}
           value={email}
           onChange={setEmail}
           type="email"
-          hint="We'll verify your student status with this."
+          hint={userType !== "host" ? "We'll verify your student status with this." : undefined}
         />
       </motion.div>
 
-      <motion.div variants={staggerChild}>
-        <FloatingInput label="Company (Optional)" value={company} onChange={setCompany} />
-      </motion.div>
+      <AnimatePresence initial={false} mode="wait">
+        {userType !== "host" && (
+          <motion.div
+            key="company-field"
+            initial={{ height: 0, opacity: 0, marginTop: 0, scale: 0.95 }}
+            animate={{ 
+              height: "auto", 
+              opacity: 1, 
+              marginTop: "1.25rem",
+              scale: 1,
+              transition: { 
+                height: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+                opacity: { duration: 0.3, ease: [0.33, 1, 0.68, 1], delay: 0.1 },
+                marginTop: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+                scale: { duration: 0.3, ease: [0.33, 1, 0.68, 1], delay: 0.1 }
+              }
+            }}
+            exit={{ 
+              height: 0, 
+              opacity: 0, 
+              marginTop: 0,
+              scale: 0.95,
+              transition: { 
+                height: { duration: 0.3, ease: [0.33, 1, 0.68, 1] },
+                opacity: { duration: 0.2, ease: [0.33, 1, 0.68, 1] },
+                marginTop: { duration: 0.3, ease: [0.33, 1, 0.68, 1] },
+                scale: { duration: 0.2, ease: [0.33, 1, 0.68, 1] }
+              }
+            }}
+            className="overflow-hidden"
+          >
+            <FloatingInput label="Company (Optional)" value={company} onChange={setCompany} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -891,7 +927,19 @@ export default function CreateProfilePage() {
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
 
-  const totalSteps = 4;
+  // Dynamic steps based on userType
+  const getSteps = () => {
+    if (userType === "host") {
+      return [
+        STEPS[0], // Basics
+        STEPS[3], // Finish
+      ];
+    }
+    return STEPS; // All 4 steps for tenants
+  };
+
+  const activeSteps = getSteps();
+  const totalSteps = activeSteps.length;
 
   const goNext = () => {
     if (step < totalSteps - 1) {
@@ -947,6 +995,15 @@ export default function CreateProfilePage() {
 
   // Validation function to check if current step is complete
   const isStepValid = () => {
+    if (userType === "host") {
+      // Hosts: step 0 = Basics, step 1 = Finish
+      if (step === 0) {
+        return name.trim().length > 0 && email.trim().length > 0 && userType !== "";
+      }
+      return true; // Finish step - bio and avatar are optional
+    }
+    
+    // Tenants: 4 steps
     switch (step) {
       case 0: // Basics
         return name.trim().length > 0 && email.trim().length > 0 && userType !== "";
@@ -996,38 +1053,15 @@ export default function CreateProfilePage() {
             className="text-white/30 text-xs tracking-[0.25em] uppercase font-semibold hover:text-white/60 transition-colors"
             style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
           >
-            Sublet-Me
+            Sublet-<span className="text-accent">Me</span>
           </Link>
         </div>
 
         {/* Ambient content - middle */}
         <div className="flex-1 flex items-center">
-          <AmbientPanel step={step} />
+          <AmbientPanel step={step} isHost={userType === "host"} />
         </div>
 
-        {/* Bottom step counter */}
-        <div className="relative z-10 px-14">
-          <div className="flex items-center gap-3 text-white/20 text-xs">
-            <motion.span
-              key={step}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-accent font-mono font-semibold text-sm"
-            >
-              {String(step + 1).padStart(2, "0")}
-            </motion.span>
-            <div className="flex-1 h-px bg-white/[0.05] relative overflow-hidden">
-              <motion.div
-                className="absolute inset-y-0 left-0 bg-white/[0.1]"
-                animate={{ width: `${((step + 1) / totalSteps) * 100}%` }}
-                transition={{ duration: 0.8, ease: [0.33, 1, 0.68, 1] }}
-              />
-            </div>
-            <span className="font-mono text-white/15">
-              {String(totalSteps).padStart(2, "0")}
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* ————— Right Panel: Form ————— */}
@@ -1039,7 +1073,7 @@ export default function CreateProfilePage() {
             className="lg:hidden font-serif text-xl text-foreground tracking-tight"
             style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
           >
-            Sublet-Me
+            Sublet-<span className="text-accent">Me</span>
           </Link>
           <Link
             href="/"
@@ -1083,17 +1117,18 @@ export default function CreateProfilePage() {
 
         {/* Form content */}
         <div className="flex-1 flex flex-col px-[6%] xl:px-[8%] py-6 w-full overflow-y-auto">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={step}
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.4, ease: [0.33, 1, 0.68, 1] }}
-              className="flex-1 flex flex-col min-h-0"
-            >
+          <div className="flex-1 flex flex-col justify-center min-h-0">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={step}
+                custom={direction}
+                variants={stepVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.4, ease: [0.33, 1, 0.68, 1] }}
+                className="flex flex-col"
+              >
               {/* Step header */}
               <div className="mb-6 flex-shrink-0">
                 <h1
@@ -1102,59 +1137,86 @@ export default function CreateProfilePage() {
                     fontFamily: "var(--font-dm-serif), Georgia, serif",
                   }}
                 >
-                  {STEPS[step].title}
+                  {activeSteps[step].title}
                 </h1>
                 <p className="text-muted text-sm mt-2 leading-relaxed">
-                  {STEPS[step].subtitle}
+                  {activeSteps[step].subtitle}
                 </p>
               </div>
 
-              {/* Step body */}
-              <div className="flex-1 overflow-y-auto min-h-0">
-                {step === 0 && (
-                  <StepBasics
-                    name={name}
-                    setName={setName}
-                    email={email}
-                    setEmail={setEmail}
-                    userType={userType}
-                    setUserType={setUserType}
-                    company={company}
-                    setCompany={setCompany}
-                  />
-                )}
-                {step === 1 && (
-                  <StepLocation
-                    university={university}
-                    setUniversity={setUniversity}
-                    selectedCity={selectedCity}
-                    setSelectedCity={setSelectedCity}
-                    selectedTerm={selectedTerm}
-                    setSelectedTerm={setSelectedTerm}
-                    budget={budget}
-                    setBudget={setBudget}
-                  />
-                )}
-                {step === 2 && (
-                  <StepLifestyle
-                    selectedLifestyles={selectedLifestyles}
-                    toggleLifestyle={toggleLifestyle}
-                  />
-                )}
-                {step === 3 && (
-                  <StepFinish
-                    avatar={avatar}
-                    setAvatar={setAvatar}
-                    bio={bio}
-                    setBio={setBio}
-                  />
+                {/* Step body */}
+                <div className="overflow-y-auto">
+                {userType === "host" ? (
+                  // Host flow: 2 steps (Basics, Finish)
+                  step === 0 ? (
+                    <StepBasics
+                      name={name}
+                      setName={setName}
+                      email={email}
+                      setEmail={setEmail}
+                      userType={userType}
+                      setUserType={setUserType}
+                      company={company}
+                      setCompany={setCompany}
+                    />
+                  ) : (
+                    <StepFinish
+                      avatar={avatar}
+                      setAvatar={setAvatar}
+                      bio={bio}
+                      setBio={setBio}
+                    />
+                  )
+                ) : (
+                  // Tenant flow: 4 steps (Basics, Location, Lifestyle, Finish)
+                  <>
+                    {step === 0 && (
+                      <StepBasics
+                        name={name}
+                        setName={setName}
+                        email={email}
+                        setEmail={setEmail}
+                        userType={userType}
+                        setUserType={setUserType}
+                        company={company}
+                        setCompany={setCompany}
+                      />
+                    )}
+                    {step === 1 && (
+                      <StepLocation
+                        university={university}
+                        setUniversity={setUniversity}
+                        selectedCity={selectedCity}
+                        setSelectedCity={setSelectedCity}
+                        selectedTerm={selectedTerm}
+                        setSelectedTerm={setSelectedTerm}
+                        budget={budget}
+                        setBudget={setBudget}
+                      />
+                    )}
+                    {step === 2 && (
+                      <StepLifestyle
+                        selectedLifestyles={selectedLifestyles}
+                        toggleLifestyle={toggleLifestyle}
+                      />
+                    )}
+                    {step === 3 && (
+                      <StepFinish
+                        avatar={avatar}
+                        setAvatar={setAvatar}
+                        bio={bio}
+                        setBio={setBio}
+                      />
+                    )}
+                  </>
                 )}
               </div>
-            </motion.div>
-          </AnimatePresence>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between mt-auto pt-5 border-t border-warm-gray/10 flex-shrink-0">
+          <div className="flex items-center justify-between pt-5 border-t border-warm-gray/10 flex-shrink-0">
             <button
               onClick={goBack}
               className={`text-sm font-medium text-muted hover:text-foreground transition-colors cursor-pointer flex items-center gap-2 group ${step === 0 ? "invisible" : ""
@@ -1176,62 +1238,39 @@ export default function CreateProfilePage() {
               Back
             </button>
 
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={step === totalSteps - 1 ? handleSubmit : goNext}
-              disabled={isSubmitting || !isStepValid()}
-              className={`relative font-semibold rounded-full text-base cursor-pointer overflow-hidden min-w-[170px] transition-all duration-300 ${step === totalSteps - 1
-                ? "bg-accent text-white px-8 py-4 shadow-[0_8px_30px_rgba(232,93,74,0.25)] hover:shadow-[0_12px_40px_rgba(232,93,74,0.35)]"
-                : "bg-foreground text-surface px-8 py-4 hover:bg-foreground/90"
-                } disabled:opacity-60 disabled:cursor-not-allowed`}
-            >
-              <AnimatePresence mode="wait">
-                {isSubmitting ? (
+            {isSubmitting ? (
+              <motion.button
+                disabled
+                className="relative font-semibold rounded-full text-base cursor-not-allowed overflow-hidden min-w-[170px] bg-accent text-white px-8 py-4 shadow-[0_8px_30px_rgba(232,93,74,0.25)] opacity-60"
+              >
+                <motion.div className="flex items-center justify-center gap-2.5">
                   <motion.div
-                    key="spin"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex items-center justify-center gap-2.5"
-                  >
-                    <motion.div
-                      className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 0.7,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                    />
-                    Creating...
-                  </motion.div>
-                ) : (
-                  <motion.span
-                    key="label"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex items-center justify-center gap-2"
-                  >
-                    {step === totalSteps - 1 ? "Create profile" : "Continue"}
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
+                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 0.7,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                  />
+                  Creating...
+                </motion.div>
+              </motion.button>
+            ) : (
+              <MagneticButton
+                onClick={step === totalSteps - 1 ? handleSubmit : goNext}
+                disabled={!isStepValid()}
+                className={`font-semibold rounded-full text-base min-w-[170px] transition-all duration-300 ${
+                  !isStepValid() ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                } ${
+                  step === totalSteps - 1
+                    ? "bg-accent text-white px-8 py-4 shadow-[0_8px_30px_rgba(232,93,74,0.25)] hover:shadow-[0_12px_40px_rgba(232,93,74,0.35)]"
+                    : "bg-foreground text-surface px-8 py-4 hover:bg-foreground/90"
+                }`}
+              >
+                {step === totalSteps - 1 ? "Create profile" : "Continue"}
+              </MagneticButton>
+            )}
           </div>
         </div>
       </div>

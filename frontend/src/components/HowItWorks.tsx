@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
 
 const steps = [
     {
@@ -13,7 +13,7 @@ const steps = [
         text: "text-background",
         mutedText: "text-background/50",
         accentBg: "bg-accent",
-        image: "https://images.unsplash.com/photo-1519337364444-c5eeec430101?q=80&w=600&auto=format&fit=crop",
+        image: "https://images.unsplash.com/photo-1627556704302-624286467c65?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
     {
         number: "02",
@@ -24,7 +24,7 @@ const steps = [
         text: "text-white",
         mutedText: "text-white/60",
         accentBg: "bg-white",
-        image: "https://images.unsplash.com/photo-1516628278970-d9d75003efad?q=80&w=600&auto=format&fit=crop",
+        image: "https://images.unsplash.com/photo-1541560052-5e137f229371?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
     {
         number: "03",
@@ -35,7 +35,7 @@ const steps = [
         text: "text-foreground",
         mutedText: "text-foreground/60",
         accentBg: "bg-foreground",
-        image: "https://images.unsplash.com/photo-1617097288997-861d70c2cd2d?q=80&w=600&auto=format&fit=crop",
+        video: "/videocall.mp4",
     },
     {
         number: "04",
@@ -46,7 +46,7 @@ const steps = [
         text: "text-background",
         mutedText: "text-background/50",
         accentBg: "bg-accent",
-        image: "https://images.unsplash.com/photo-1733244766159-f58f4184fd38?q=80&w=600&auto=format&fit=crop",
+        image: "https://images.unsplash.com/photo-1737442886747-9fb768b96ed2?q=80&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
 ];
 
@@ -83,6 +83,8 @@ function StepVisual({ visual, accentBg }: { visual: string; accentBg: string }) 
 
 function StickyCard({ step, index, totalSteps }: { step: typeof steps[0]; index: number; totalSteps: number }) {
     const cardRef = useRef<HTMLDivElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const isInView = useInView(cardRef, { margin: "-30% 0px -30% 0px" });
     const { scrollYProgress } = useScroll({
         target: cardRef,
         offset: ["start end", "start start"],
@@ -90,6 +92,15 @@ function StickyCard({ step, index, totalSteps }: { step: typeof steps[0]; index:
 
     const scale = useTransform(scrollYProgress, [0, 1], [0.9, 1]);
     const opacity = useTransform(scrollYProgress, [0, 0.5], [0, 1]);
+
+    useEffect(() => {
+        if (!videoRef.current) return;
+        if (isInView) {
+            videoRef.current.play();
+        } else {
+            videoRef.current.pause();
+        }
+    }, [isInView]);
 
     return (
         <div ref={cardRef} className="h-screen flex items-center sticky top-0" style={{ zIndex: index + 1 }}>
@@ -140,14 +151,25 @@ function StickyCard({ step, index, totalSteps }: { step: typeof steps[0]; index:
 
                 {/* Step image — OUTSIDE overflow-hidden so all rounded corners show */}
                 <div
-                    className="hidden lg:flex flex-col items-start absolute bottom-6 right-6"
+                    className="hidden lg:flex absolute top-0 bottom-0 right-8 xl:right-12 flex-col justify-center items-center"
                 >
-                    <div className="w-[330px] h-[390px] xl:w-[528px] xl:h-[624px] rounded-2xl overflow-hidden shadow-2xl">
-                        <img
-                            src={step.image}
-                            alt=""
-                            className="w-full h-full object-cover"
-                        />
+                    <div className="w-[330px] h-[390px] xl:w-[528px] xl:h-[624px] rounded-2xl overflow-hidden shadow-[0_20px_60px_-10px_rgba(0,0,0,0.35),0_8px_20px_-6px_rgba(0,0,0,0.2)]">
+                        {step.video ? (
+                            <video
+                                ref={videoRef}
+                                src={step.video}
+                                muted
+                                loop
+                                playsInline
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <img
+                                src={step.image}
+                                alt=""
+                                className="w-full h-full object-cover"
+                            />
+                        )}
                     </div>
                 </div>
             </motion.div>

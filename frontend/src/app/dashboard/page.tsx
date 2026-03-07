@@ -328,13 +328,11 @@ function ListingCard({
   const isFeatured = variant === "featured";
 
   return (
+    <Link href={`/listings/${listing.id}`} className={isFeatured ? "w-[380px] md:w-[420px] flex-shrink-0 snap-start" : "w-full block"}>
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
-      className={`group relative rounded-2xl overflow-hidden cursor-pointer bg-surface border border-warm-gray/10 ${isFeatured
-        ? "w-[380px] md:w-[420px] flex-shrink-0 snap-start"
-        : "w-full"
-        }`}
+      className={`group relative rounded-2xl overflow-hidden cursor-pointer bg-surface border border-warm-gray/10 w-full`}
     >
       {/* Image */}
       <div
@@ -420,6 +418,7 @@ function ListingCard({
         </div>
       </div>
     </motion.div>
+    </Link>
   );
 }
 

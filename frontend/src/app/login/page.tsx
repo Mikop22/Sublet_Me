@@ -27,10 +27,9 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link
             href="/"
-            className="inline-block text-foreground text-2xl font-serif font-bold tracking-tight hover:opacity-80 transition-opacity"
-            style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
+            className="inline-block font-serif text-xs tracking-[0.25em] uppercase font-semibold text-foreground hover:opacity-80 transition-opacity"
           >
-            HackCanada
+            SUBLET-<span className="text-accent">ME</span>
           </Link>
         </div>
 
@@ -40,7 +39,7 @@ export default function LoginPage() {
             Welcome
           </h1>
           <p className="text-muted text-center mb-8 text-sm">
-            Log in to continue to HackCanada
+            Log in to continue to Sublet-Me
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
