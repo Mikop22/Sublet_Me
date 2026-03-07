@@ -921,6 +921,22 @@ export default function CreateProfilePage() {
     }, 2000);
   };
 
+  // Validation function to check if current step is complete
+  const isStepValid = () => {
+    switch (step) {
+      case 0: // Basics
+        return name.trim().length > 0 && email.trim().length > 0 && userType !== "";
+      case 1: // Location
+        return university.trim().length > 0 && selectedCity !== "" && selectedTerm !== "";
+      case 2: // Lifestyle
+        return selectedLifestyles.length > 0; // At least one lifestyle tag selected
+      case 3: // Finish
+        return true; // Bio and avatar are optional
+      default:
+        return false;
+    }
+  };
+
   if (isComplete) {
     return <SuccessScreen name={name} />;
   }
@@ -1042,7 +1058,7 @@ export default function CreateProfilePage() {
         </div>
 
         {/* Form content */}
-        <div className="flex-1 flex flex-col px-[6%] xl:px-[8%] py-6 w-full overflow-hidden">
+        <div className="flex-1 flex flex-col px-[6%] xl:px-[8%] py-6 w-full overflow-y-auto">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={step}
@@ -1052,10 +1068,10 @@ export default function CreateProfilePage() {
               animate="center"
               exit="exit"
               transition={{ duration: 0.4, ease: [0.33, 1, 0.68, 1] }}
-              className="flex-1 flex flex-col justify-center"
+              className="flex-1 flex flex-col min-h-0"
             >
               {/* Step header */}
-              <div className="mb-6">
+              <div className="mb-6 flex-shrink-0">
                 <h1
                   className="font-serif text-[clamp(1.75rem,3vw,2.75rem)] tracking-tight text-foreground leading-[1.05] whitespace-pre-line"
                   style={{
@@ -1070,7 +1086,7 @@ export default function CreateProfilePage() {
               </div>
 
               {/* Step body */}
-              <div className="overflow-hidden">
+              <div className="flex-1 overflow-y-auto min-h-0">
                 {step === 0 && (
                   <StepBasics
                     name={name}
@@ -1140,7 +1156,7 @@ export default function CreateProfilePage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={step === totalSteps - 1 ? handleSubmit : goNext}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isStepValid()}
               className={`relative font-semibold rounded-full text-base cursor-pointer overflow-hidden min-w-[170px] transition-all duration-300 ${step === totalSteps - 1
                 ? "bg-accent text-white px-8 py-4 shadow-[0_8px_30px_rgba(232,93,74,0.25)] hover:shadow-[0_12px_40px_rgba(232,93,74,0.35)]"
                 : "bg-foreground text-surface px-8 py-4 hover:bg-foreground/90"
