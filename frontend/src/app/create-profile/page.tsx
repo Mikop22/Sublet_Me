@@ -875,7 +875,7 @@ function SuccessScreen({ name }: { name: string }) {
         >
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 bg-foreground text-surface font-semibold px-8 py-4 rounded-full hover:bg-foreground/90 transition-colors"
+            className="inline-flex items-center gap-2 bg-foreground text-surface font-semibold px-8 py-4 rounded-full hover:bg-foreground/90 transition-colors cursor-pointer"
             style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
           >
             Start browsing
@@ -955,7 +955,7 @@ export default function CreateProfilePage() {
     if (userType === "host") {
       // Hosts: step 0 = Basics, step 1 = Finish
       if (step === 0) {
-        return name.trim().length > 0 && email.trim().length > 0 && userType !== "";
+        return name.trim().length > 0 && email.trim().length > 0;
       }
       return true; // Finish step - bio and avatar are optional
     }
@@ -1007,7 +1007,7 @@ export default function CreateProfilePage() {
         <div className="relative z-10 px-14">
           <Link
             href="/"
-            className="text-white/30 text-xs tracking-[0.25em] uppercase font-semibold hover:text-white/60 transition-colors"
+            className="text-white/30 text-xs tracking-[0.25em] uppercase font-semibold hover:text-white/60 transition-colors cursor-pointer"
             style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
           >
             Sublet-<span className="text-accent">Me</span>
@@ -1034,7 +1034,7 @@ export default function CreateProfilePage() {
           </Link>
           <Link
             href="/"
-            className="text-muted/50 hover:text-foreground transition-colors ml-auto p-2 rounded-full hover:bg-warm-gray/10"
+            className="text-muted/50 hover:text-foreground transition-colors ml-auto p-2 rounded-full hover:bg-warm-gray/10 cursor-pointer"
           >
             <svg
               className="w-5 h-5"
@@ -1216,9 +1216,8 @@ export default function CreateProfilePage() {
             ) : (
               <MagneticButton
                 onClick={step === totalSteps - 1 ? handleSubmit : goNext}
-                disabled={!isStepValid()}
                 className={`font-semibold rounded-full text-base min-w-[170px] transition-all duration-300 ${
-                  !isStepValid() ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                  !isStepValid() ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
                 } ${
                   step === totalSteps - 1
                     ? "bg-accent text-white px-8 py-4 shadow-[0_8px_30px_rgba(232,93,74,0.25)] hover:shadow-[0_12px_40px_rgba(232,93,74,0.35)]"

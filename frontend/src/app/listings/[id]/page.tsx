@@ -557,7 +557,7 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-muted mb-4">Listing not found.</p>
-          <Link href="/dashboard" className="text-accent underline">Back to matches</Link>
+          <Link href="/dashboard" className="text-accent underline cursor-pointer">Back to matches</Link>
         </div>
       </div>
     );

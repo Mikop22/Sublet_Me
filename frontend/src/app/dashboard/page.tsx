@@ -560,7 +560,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={openLogoutConfirm}
-              className="text-xs font-medium text-muted hover:text-foreground transition-colors"
+              className="text-xs font-medium text-muted hover:text-foreground transition-colors cursor-pointer"
             >
               Log out
             </button>
@@ -838,14 +838,14 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={closeLogoutConfirm}
-                className="px-4 py-2.5 rounded-full text-sm font-semibold text-foreground bg-warm-gray/10 hover:bg-warm-gray/15 transition-colors border border-warm-gray/15"
+                className="px-4 py-2.5 rounded-full text-sm font-semibold text-foreground bg-warm-gray/10 hover:bg-warm-gray/15 transition-colors border border-warm-gray/15 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmLogout}
-                className="px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-accent hover:bg-accent/90 transition-colors"
+                className="px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-accent hover:bg-accent/90 transition-colors cursor-pointer"
               >
                 Log out
               </button>

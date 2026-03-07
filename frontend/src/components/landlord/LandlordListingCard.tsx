@@ -72,7 +72,7 @@ export function LandlordListingCard({ listing }: { listing: Listing }) {
                       e.preventDefault();
                       setMenuOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${
                       action === "Delete"
                         ? "text-red-500 hover:bg-red-50"
                         : "text-foreground hover:bg-warm-gray/8"

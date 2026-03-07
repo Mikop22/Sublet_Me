@@ -95,6 +95,7 @@ export default function VideoTourSection({
       <div
         className="relative aspect-video rounded-2xl overflow-hidden bg-black cursor-pointer group"
         onClick={handleClick}
+        style={{ cursor: 'pointer' }}
       >
         {hasError ? (
           <div className="w-full h-full flex flex-col items-center justify-center bg-warm-gray/10 text-center p-8">

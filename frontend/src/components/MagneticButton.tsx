@@ -12,7 +12,7 @@ function ButtonInner({ children, className, onClick }: { children: React.ReactNo
 
     return (
         <motion.button
-            className={`${className} overflow-hidden`}
+            className={`${className} overflow-hidden cursor-pointer`}
             onClick={onClick}
             onHoverStart={() => setHovered(true)}
             onHoverEnd={() => setHovered(false)}
@@ -55,7 +55,7 @@ function LinkInner({ children, className, href }: { children: React.ReactNode; c
             onHoverEnd={() => setHovered(false)}
             whileTap={{ scale: 0.97 }}
         >
-            <Link href={href} className={`${className} overflow-hidden flex items-center justify-center`}>
+            <Link href={href} className={`${className} overflow-hidden flex items-center justify-center cursor-pointer`}>
                 <span className="relative flex items-center justify-center gap-0">
                     <motion.span
                         animate={{ x: hovered ? -6 : 0 }}

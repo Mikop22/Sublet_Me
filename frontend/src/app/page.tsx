@@ -13,7 +13,7 @@ export default function Home() {
       <header className="absolute top-0 w-full px-6 py-6 lg:px-10 z-50 flex justify-between items-center pointer-events-none">
         <Link
           href="/"
-          className="pointer-events-auto font-serif text-xs tracking-[0.25em] uppercase font-semibold text-foreground"
+          className="pointer-events-auto font-serif text-xs tracking-[0.25em] uppercase font-semibold text-foreground cursor-pointer"
         >
           SUBLET-<span className="text-accent">ME</span>
         </Link>

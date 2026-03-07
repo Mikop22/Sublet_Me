@@ -25,7 +25,7 @@ function TourProposalBubble({
           <button
             key={slot}
             onClick={() => onSelect(slot)}
-            className={`text-xs text-left px-3 py-2 rounded-lg border transition-colors ${
+            className={`text-xs text-left px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
               selectedSlot === slot
                 ? "bg-accent text-white border-accent"
                 : "border-warm-gray/20 text-foreground hover:border-accent/30 hover:bg-accent/5"
@@ -218,7 +218,7 @@ export function ChatPanel({
       {/* Input */}
       <div className="px-4 py-4 border-t border-warm-gray/10 flex-shrink-0">
         <div className="flex items-center gap-2 bg-surface border border-warm-gray/10 rounded-2xl px-3 py-2">
-          <button className="text-muted/50 hover:text-muted transition-colors flex-shrink-0">
+          <button className="text-muted/50 hover:text-muted transition-colors flex-shrink-0 cursor-pointer">
             <Paperclip className="w-4 h-4" />
           </button>
           <input
@@ -231,7 +231,7 @@ export function ChatPanel({
           />
           <button
             onClick={onScheduleTour}
-            className="text-muted/50 hover:text-accent transition-colors flex-shrink-0"
+            className="text-muted/50 hover:text-accent transition-colors flex-shrink-0 cursor-pointer"
             title="Propose a tour"
           >
             <Calendar className="w-4 h-4" />
@@ -239,7 +239,7 @@ export function ChatPanel({
           <button
             onClick={send}
             disabled={!input.trim()}
-            className="flex-shrink-0 w-7 h-7 rounded-full bg-accent flex items-center justify-center disabled:opacity-30 transition-opacity"
+            className="flex-shrink-0 w-7 h-7 rounded-full bg-accent flex items-center justify-center disabled:opacity-30 transition-opacity cursor-pointer disabled:cursor-not-allowed"
           >
             <svg
               className="w-3.5 h-3.5 text-white rotate-90"
