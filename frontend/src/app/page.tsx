@@ -6,7 +6,6 @@ import HowItWorks from "@/components/HowItWorks";
 import Link from "next/link";
 
 import CTASection from "@/components/CTASection";
-import Link from "next/link";
 
 export default function Home() {
   return (
