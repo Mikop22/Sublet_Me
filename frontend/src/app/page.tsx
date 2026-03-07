@@ -5,20 +5,18 @@ import SocialProof from "@/components/SocialProof";
 import HowItWorks from "@/components/HowItWorks";
 
 import CTASection from "@/components/CTASection";
-import MagneticButton from "@/components/MagneticButton";
 
 export default function Home() {
   return (
     <main className="min-h-screen relative flex flex-col overflow-hidden bg-background">
       <header className="absolute top-0 w-full px-6 py-6 lg:px-10 z-50 flex justify-end items-center pointer-events-none">
         <div className="pointer-events-auto">
-          <MagneticButton
+          <a
             className="bg-transparent text-foreground border border-warm-gray text-sm md:text-base font-semibold px-6 py-2.5 rounded-full hover:border-foreground/30 transition-colors cursor-pointer shadow-sm"
-            strength={0.2}
-            href="/create-profile"
+            href="/auth/login?returnTo=/create-profile"
           >
             Log in
-          </MagneticButton>
+          </a>
         </div>
       </header>
 

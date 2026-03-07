@@ -4,9 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
 import Link from "next/link";
 
-// ————— Mock User (would come from auth/session) —————
-const USER = {
-  name: "Jane",
+// ————— Default preferences (until persisted profile exists) —————
+const DEFAULT_PREFERENCES = {
   city: "Toronto",
   term: "Summer 2025",
   budget: 900,
@@ -223,6 +222,11 @@ type Listing = {
   match: number;
   beds: number;
   type: string;
+};
+
+type AuthProfile = {
+  name: string;
+  picture?: string;
 };
 
 // ————— Animated Counter —————
@@ -469,7 +473,37 @@ function RoommateCard({
 // ————— Main Dashboard —————
 export default function DashboardPage() {
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+  const [authProfile, setAuthProfile] = useState<AuthProfile>({
+    name: "Student",
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const response = await fetch("/auth/profile");
+        if (!response.ok) return;
+
+        const profile = (await response.json()) as Record<string, unknown>;
+        const email = typeof profile.email === "string" ? profile.email : "";
+        const defaultName = email.includes("@") ? email.split("@")[0] : "Student";
+        const name =
+          typeof profile.name === "string"
+            ? profile.name
+            : typeof profile.nickname === "string"
+              ? profile.nickname
+              : defaultName;
+        const picture =
+          typeof profile.picture === "string" ? profile.picture : undefined;
+
+        setAuthProfile({ name, picture });
+      } catch {
+        // No-op: keep fallback identity if profile endpoint is unavailable.
+      }
+    };
+
+    void loadUserProfile();
+  }, []);
 
   const toggleSave = (id: number) => {
     setSavedIds((prev) => {
@@ -488,10 +522,10 @@ export default function DashboardPage() {
   const greeting = getGreeting();
   const matchCount = LISTINGS.length;
   const filterPills = [
-    USER.city,
-    USER.term,
-    `Under $${USER.budget}/mo`,
-    ...USER.lifestyles,
+    DEFAULT_PREFERENCES.city,
+    DEFAULT_PREFERENCES.term,
+    `Under $${DEFAULT_PREFERENCES.budget}/mo`,
+    ...DEFAULT_PREFERENCES.lifestyles,
   ];
 
   return (
@@ -511,6 +545,12 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <a
+              href="/auth/logout"
+              className="text-xs font-medium text-muted hover:text-foreground transition-colors"
+            >
+              Log out
+            </a>
             {/* Saved count */}
             {savedIds.size > 0 && (
               <motion.div
@@ -534,8 +574,16 @@ export default function DashboardPage() {
             )}
 
             {/* Profile */}
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-orange-400 flex items-center justify-center text-white font-semibold text-sm cursor-pointer ring-2 ring-background shadow-sm">
-              {USER.name.charAt(0)}
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-accent to-orange-400 flex items-center justify-center text-white font-semibold text-sm cursor-pointer ring-2 ring-background shadow-sm">
+              {authProfile.picture ? (
+                <img
+                  src={authProfile.picture}
+                  alt={authProfile.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                authProfile.name.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
         </div>
@@ -548,7 +596,9 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          <p className="text-muted text-sm mb-2">{greeting}, {USER.name}</p>
+          <p className="text-muted text-sm mb-2">
+            {greeting}, {authProfile.name}
+          </p>
           <h1
             className="text-foreground text-4xl md:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.05]"
             style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
@@ -556,7 +606,7 @@ export default function DashboardPage() {
             <AnimatedCount target={matchCount} /> places waiting
             <br />
             for you in{" "}
-            <span className="text-accent">{USER.city}</span>.
+            <span className="text-accent">{DEFAULT_PREFERENCES.city}</span>.
           </h1>
         </motion.div>
 
