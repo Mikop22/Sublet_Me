@@ -86,6 +86,7 @@ export function TourModal({
                   <input
                     type="date"
                     value={slot.date}
+                    min={new Date().toISOString().split("T")[0]}
                     onChange={(e) => updateSlot(i, "date", e.target.value)}
                     className="flex-1 bg-surface border border-warm-gray/10 rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:border-accent/30 transition-colors"
                   />
@@ -112,9 +113,9 @@ export function TourModal({
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {validSlots.map((slot) => (
+              {validSlots.map((slot, i) => (
                 <div
-                  key={slot}
+                  key={i}
                   className="px-4 py-3 rounded-xl bg-surface border border-warm-gray/10 text-sm text-foreground"
                 >
                   {slot}
