@@ -140,14 +140,14 @@ export default function Hero() {
                         >
                             <MagneticButton
                                 className="bg-accent text-white text-base font-semibold px-8 py-4 rounded-full shadow-[0_8px_30px_rgba(232,93,74,0.3)] cursor-pointer hover:shadow-[0_12px_40px_rgba(232,93,74,0.4)] transition-shadow"
-                                href="/create-profile"
+                                href="/create-profile/find-place"
                             >
                                 I need a sublet
                             </MagneticButton>
                             <MagneticButton
                                 className="bg-transparent text-foreground border border-warm-gray text-base font-semibold px-8 py-4 rounded-full hover:border-foreground/30 transition-colors cursor-pointer"
                                 strength={0.2}
-                                href="/create-profile"
+                                href="/create-profile/list-place"
                             >
                                 List my place
                             </MagneticButton>

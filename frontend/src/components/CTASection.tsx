@@ -77,14 +77,14 @@ export default function CTASection() {
                     >
                         <MagneticButton
                             className="bg-white text-accent font-semibold px-8 py-4 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.15)] text-lg cursor-pointer"
-                            href="/create-profile"
+                            href="/create-profile/find-place"
                         >
                             Find a Place
                         </MagneticButton>
                         <MagneticButton
                             className="bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold px-8 py-4 rounded-full text-lg hover:bg-white/20 transition-colors cursor-pointer"
                             strength={0.2}
-                            href="/create-profile"
+                            href="/create-profile/list-place"
                         >
                             List Your Sublet
                         </MagneticButton>
