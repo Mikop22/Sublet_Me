@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const loginUrl = new URL("/auth/login", request.url);
+  const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("returnTo", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
 }
