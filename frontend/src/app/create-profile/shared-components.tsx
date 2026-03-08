@@ -711,7 +711,21 @@ export function StepFinish({
 }
 
 // ————— Success Screen —————
-export function SuccessScreen({ name }: { name: string }) {
+export function SuccessScreen({
+  name,
+  userType = "tenant",
+}: {
+  name: string;
+  userType?: "tenant" | "host";
+}) {
+  const dashboardPath = userType === "host" ? "/landlord/dashboard" : "/dashboard";
+  const ctaLabel =
+    userType === "host" ? "Open landlord dashboard" : "Start browsing";
+  const bodyCopy =
+    userType === "host"
+      ? "Your host profile is live. Head to the landlord dashboard to create a listing and start reviewing tenant matches."
+      : "Your profile is live. We'll start matching you with compatible listings and roommates.";
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface relative overflow-hidden">
       {/* Celebration effects */}
@@ -761,7 +775,7 @@ export function SuccessScreen({ name }: { name: string }) {
           className="text-muted text-lg max-w-md mx-auto mb-10 leading-relaxed"
           style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
         >
-          Your profile is live. We&apos;ll start matching you with compatible listings and roommates.
+          {bodyCopy}
         </motion.p>
 
         <motion.div
@@ -770,11 +784,11 @@ export function SuccessScreen({ name }: { name: string }) {
           transition={{ delay: 0.7 }}
         >
           <Link
-            href="/dashboard"
+            href={dashboardPath}
             className="inline-flex items-center gap-2 bg-foreground text-surface font-semibold px-8 py-4 rounded-full hover:bg-foreground/90 transition-colors"
             style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
           >
-            Start browsing
+            {ctaLabel}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>

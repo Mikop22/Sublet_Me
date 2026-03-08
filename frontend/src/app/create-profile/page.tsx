@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import MagneticButton from "@/components/MagneticButton";
@@ -791,7 +791,7 @@ function StepFinish({
           </div>
         </div>
         <p className="text-xs text-muted/60 mt-2 leading-relaxed">
-          Anything we need to know? We don't share this with landlords—we use this to help find you the optimal place.
+          Anything we need to know? We don&apos;t share this with landlords—we use this to help find you the optimal place.
         </p>
       </motion.div>
 
@@ -825,6 +825,12 @@ function StepFinish({
 // ————— Success Screen —————
 function SuccessScreen({ name, userType }: { name: string; userType: "tenant" | "host" | "" }) {
   const dashboardPath = userType === "host" ? "/landlord/dashboard" : "/dashboard";
+  const ctaLabel =
+    userType === "host" ? "Open landlord dashboard" : "Start browsing";
+  const bodyCopy =
+    userType === "host"
+      ? "Your host profile is live. Head to the landlord dashboard to create a listing and start reviewing tenant matches."
+      : "Your profile is live. We'll start matching you with compatible listings and roommates.";
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface relative overflow-hidden">
@@ -875,7 +881,7 @@ function SuccessScreen({ name, userType }: { name: string; userType: "tenant" | 
           className="text-muted text-lg max-w-md mx-auto mb-10 leading-relaxed"
           style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
         >
-          Your profile is live. We&apos;ll start matching you with compatible listings and roommates.
+          {bodyCopy}
         </motion.p>
 
         <motion.div
@@ -888,7 +894,7 @@ function SuccessScreen({ name, userType }: { name: string; userType: "tenant" | 
             className="inline-flex items-center gap-2 bg-foreground text-surface font-semibold px-8 py-4 rounded-full hover:bg-foreground/90 transition-colors cursor-pointer"
             style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
           >
-            Start browsing
+            {ctaLabel}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
@@ -1263,7 +1269,6 @@ export default function CreateProfilePage() {
               </motion.button>
             ) : (
               <MagneticButton
-                onClick={step === totalSteps - 1 ? handleSubmit : goNext}
                 onClick={() => {
                   if (!isStepValid()) return;
                   if (step === totalSteps - 1) {

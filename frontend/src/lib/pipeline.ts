@@ -51,6 +51,17 @@ type ReviewResult = {
   feedback: string;
 };
 
+type CopywriterResult = {
+  title: string;
+  description: string;
+  amenities: string[];
+  neighborhood: string;
+  type: string;
+  beds: number;
+  baths: number;
+  sqft: number;
+};
+
 type RoundResult = {
   round: number;
   numFrames: number;
@@ -113,6 +124,19 @@ async function uploadVideo(
     );
     uploadStream.end(videoBuffer);
   });
+}
+
+async function getUploadedVideo(
+  publicId: string
+): Promise<{ publicId: string; duration: number }> {
+  const resource = await cloudinary.api.resource(publicId, {
+    resource_type: "video",
+  });
+
+  return {
+    publicId,
+    duration: resource.duration ?? 30,
+  };
 }
 
 // ── Step 2: Generate highlight URL ───────────────────────────────────────────
@@ -329,9 +353,93 @@ Return ONLY valid JSON with keys: best_round (number 1-${rounds.length}), reason
   return rounds.length;
 }
 
-// ── Main exported function ───────────────────────────────────────────────────
-export async function runVideoPipeline(
-  videoBuffer: Buffer,
+// ── Step 7: Copywriter agent — generate title, description, amenities ────────
+async function generateListingCopy(
+  copywriterId: string,
+  frames: FrameData[],
+  curatorResult: CuratorResult,
+  existingTitle: string,
+  address: string,
+  price: number
+): Promise<CopywriterResult> {
+  const threadId = await createThread(copywriterId);
+
+  const selectedDetails = curatorResult.selected
+    .map((idx) => {
+      const f = frames.find((fr) => fr.index === idx);
+      const label = curatorResult.labels[String(idx)] ?? "unknown";
+      return f
+        ? `Frame ${idx}: "${label}" — Tags: [${f.tags.join(", ") || "none"}]`
+        : `Frame ${idx}: not found`;
+    })
+    .join("\n");
+
+  const allTags = [...new Set(frames.flatMap((f) => f.tags))].join(", ");
+
+  const message = `You are writing copy for a Toronto student sublet listing on SubletMe.
+
+LISTING INFO:
+- User-provided title: "${existingTitle}"
+- Address: ${address}
+- Monthly price: $${price}
+
+GALLERY SELECTION (${curatorResult.selected.length} frames from a video walkthrough):
+${selectedDetails}
+
+ALL DETECTED TAGS: ${allTags || "none"}
+
+CURATOR'S REASONING: "${curatorResult.reasoning}"
+
+Generate the listing copy as JSON with these keys:
+- title: A catchy, concise title (max 60 chars). Keep the user's title if it's good, or improve it.
+- description: A warm, informative 2-3 sentence description highlighting the space's best features for student subletters. Mention natural light, layout, furnishing, and neighborhood if visible from tags.
+- amenities: An array of 5-10 amenity strings detected or inferred from the video (e.g. "WiFi", "In-unit laundry", "Air conditioning", "Furnished", "Natural light", "Kitchen", "Balcony").
+- neighborhood: A 1-2 sentence neighborhood description based on the address.
+- type: One of "Studio", "Apartment", "Room", "Loft" — infer from the video.
+- beds: Number of bedrooms (integer, infer from video).
+- baths: Number of bathrooms (integer, infer from video).
+- sqft: Estimated square footage (integer, infer from video).
+
+Return ONLY valid JSON.`;
+
+  const response = await sendMessage(threadId, message);
+
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        title: typeof parsed.title === "string" ? parsed.title : existingTitle,
+        description: typeof parsed.description === "string" ? parsed.description : "",
+        amenities: Array.isArray(parsed.amenities) ? parsed.amenities : [],
+        neighborhood: typeof parsed.neighborhood === "string" ? parsed.neighborhood : "",
+        type: ["Studio", "Apartment", "Room", "Loft"].includes(parsed.type) ? parsed.type : "Apartment",
+        beds: Number(parsed.beds) || 1,
+        baths: Number(parsed.baths) || 1,
+        sqft: Number(parsed.sqft) || 0,
+      };
+    }
+  } catch {
+    console.error("Could not parse copywriter response");
+  }
+
+  return {
+    title: existingTitle,
+    description: "",
+    amenities: [],
+    neighborhood: "",
+    type: "Apartment",
+    beds: 1,
+    baths: 1,
+    sqft: 0,
+  };
+}
+
+async function runVideoPipelineForUploadedVideo(
+  uploadedVideo: {
+    publicId: string;
+    duration: number;
+  },
   listingId: string
 ): Promise<void> {
   // Assistants pre-provisioned with prompts in Backboard dashboard
@@ -342,8 +450,8 @@ export async function runVideoPipeline(
     // 0. Connect to DB early — fail fast if unavailable
     await connectDB();
 
-    // 1. Upload video
-    const { publicId, duration } = await uploadVideo(videoBuffer);
+    // 1. Use the uploaded video asset
+    const { publicId, duration } = uploadedVideo;
     const safeDuration = duration > 0 ? duration : 30;
 
     // 2. Generate highlight URL
@@ -428,21 +536,74 @@ export async function runVideoPipeline(
       }
     }
 
-    // 5. Patch listing in MongoDB
+    // 5. Copywriter agent — generate title, description, amenities
+    const copywriterId = process.env.COPYWRITER_ASSISTANT_ID;
+    const listing = await Listing.findById(listingId).lean();
+
+    let copyUpdate: Record<string, unknown> = {};
+    if (copywriterId) {
+      console.log("[pipeline] Running copywriter agent...");
+      const copy = await generateListingCopy(
+        copywriterId,
+        frames,
+        curatorResult,
+        (listing as Record<string, unknown>)?.title as string ?? "",
+        (listing as Record<string, unknown>)?.address as string ?? "",
+        (listing as Record<string, unknown>)?.price as number ?? 0
+      );
+      copyUpdate = {
+        title: copy.title,
+        description: copy.description,
+        amenities: copy.amenities,
+        neighborhood: copy.neighborhood,
+        type: copy.type,
+        beds: copy.beds,
+        baths: copy.baths,
+        sqft: copy.sqft,
+      };
+      console.log(`[pipeline] Copywriter generated: "${copy.title}"`);
+    } else {
+      console.log("[pipeline] COPYWRITER_ASSISTANT_ID not set — skipping copy generation");
+    }
+
+    // 6. Patch listing in MongoDB
     await Listing.findByIdAndUpdate(listingId, {
+      ...copyUpdate,
       images,
       videoPublicId: publicId,
       highlightUrl,
       videoProcessing: false,
+      "enrichment.status": "complete",
+      "enrichment.processedAt": new Date(),
     });
   } catch (err: unknown) {
     console.error("runVideoPipeline error:", err);
 
     try {
       await connectDB();
-      await Listing.findByIdAndUpdate(listingId, { videoProcessing: false });
+      await Listing.findByIdAndUpdate(listingId, {
+        videoProcessing: false,
+        "enrichment.status": "failed",
+      });
     } catch (dbErr: unknown) {
       console.error("Failed to clear videoProcessing flag:", dbErr);
     }
   }
+}
+
+// ── Main exported functions ──────────────────────────────────────────────────
+export async function runVideoPipeline(
+  videoBuffer: Buffer,
+  listingId: string
+): Promise<void> {
+  const uploadedVideo = await uploadVideo(videoBuffer);
+  await runVideoPipelineForUploadedVideo(uploadedVideo, listingId);
+}
+
+export async function runVideoPipelineFromPublicId(
+  publicId: string,
+  listingId: string
+): Promise<void> {
+  const uploadedVideo = await getUploadedVideo(publicId);
+  await runVideoPipelineForUploadedVideo(uploadedVideo, listingId);
 }

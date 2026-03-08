@@ -20,6 +20,8 @@ type ListingResult = {
   title: string;
   city: string;
   price: number;
+  score: number;
+  image_url: string;
   reasons: string[];
 };
 
@@ -29,7 +31,41 @@ type TurnResponse = {
   next_action: string;
   confidence: number;
   listings?: ListingResult[];
+  metadata?: {
+    source: string;
+    degraded: boolean;
+  };
 };
+
+function isMongoId(id: string): boolean {
+  return /^[a-f0-9]{24}$/.test(id);
+}
+
+function ListingCard({ listing }: { listing: ListingResult }) {
+  const content = (
+    <div className="rounded-xl border border-warm-gray/20 bg-background p-3 hover:border-warm-gray/40 transition-colors">
+      <div className="flex items-start justify-between">
+        <p className="font-semibold text-sm text-foreground">{listing.title}</p>
+        {listing.score > 0 && (
+          <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">
+            {listing.score}%
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-muted mt-1">
+        {listing.city} · ${listing.price}/mo
+      </p>
+      <p className="text-xs text-muted mt-1">
+        {listing.reasons?.[0] ?? "Matched to your request."}
+      </p>
+    </div>
+  );
+
+  if (isMongoId(listing.id)) {
+    return <Link href={`/listings/${listing.id}`}>{content}</Link>;
+  }
+  return content;
+}
 
 export default function AssistantPage() {
   const [input, setInput] = useState("");
@@ -109,12 +145,14 @@ export default function AssistantPage() {
           metadata: {
             next_action: payload.next_action,
             confidence: payload.confidence,
+            source: payload.metadata?.source ?? "",
+            degraded: payload.metadata?.degraded ?? false,
           },
         },
       ]);
       setLastListings(payload.listings ?? []);
     } catch {
-      setError("Could not reach the assistant. Please try again.");
+      setError("Could not reach the assistant. The rest of the dashboard still works — try again or refresh the page.");
     } finally {
       setIsLoading(false);
     }
@@ -147,9 +185,13 @@ export default function AssistantPage() {
           <section className="lg:col-span-2 border border-warm-gray/20 rounded-2xl bg-surface p-4 md:p-5">
             <div className="h-[430px] overflow-y-auto space-y-4 pr-1">
               {turns.length === 0 ? (
-                <div className="text-sm text-muted">
-                  Ask for listings like: &quot;Find Toronto listings under $1000 for
-                  Summer 2026.&quot;
+                <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                  <p className="text-sm text-muted mb-2">
+                    Ask for listings by city, budget, and term to get recommendations.
+                  </p>
+                  <p className="text-xs text-muted/60">
+                    Try: &quot;Find Toronto listings under $1000 for Summer 2026&quot;
+                  </p>
                 </div>
               ) : (
                 turns.map((turn, index) => (
@@ -191,6 +233,11 @@ export default function AssistantPage() {
               </button>
             </form>
             {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+            {lastListings.length > 0 && turns.some(t => t.metadata?.degraded === true || t.metadata?.source === "deterministic_fallback") && (
+              <p className="mt-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-1.5">
+                Showing demo fallback recommendations. Live recommendations require Backboard.
+              </p>
+            )}
           </section>
 
           <aside className="border border-warm-gray/20 rounded-2xl bg-surface p-4 md:p-5">
@@ -207,20 +254,7 @@ export default function AssistantPage() {
             ) : (
               <div className="space-y-3">
                 {lastListings.slice(0, 5).map((listing) => (
-                  <div
-                    key={listing.id}
-                    className="rounded-xl border border-warm-gray/20 bg-background p-3"
-                  >
-                    <p className="font-semibold text-sm text-foreground">
-                      {listing.title}
-                    </p>
-                    <p className="text-xs text-muted mt-1">
-                      {listing.city} · ${listing.price}/mo
-                    </p>
-                    <p className="text-xs text-muted mt-1">
-                      {listing.reasons?.[0] ?? "Matched to your request."}
-                    </p>
-                  </div>
+                  <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
             )}

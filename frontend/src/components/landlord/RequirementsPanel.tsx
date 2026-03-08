@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, Settings2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import type { Requirements } from "@/lib/landlord-mock";
+import type { LandlordRequirements } from "@/lib/landlord-types";
 
 const GENDER_LABELS: Record<string, string> = {
   "no-preference": "No preference",
@@ -18,7 +18,13 @@ const PET_LABELS: Record<string, string> = {
   "pets-ok": "Pets OK",
 };
 
-export function RequirementsPanel({ requirements, listingId }: { requirements: Requirements; listingId: number }) {
+export function RequirementsPanel({
+  requirements,
+  listingId,
+}: {
+  requirements: LandlordRequirements;
+  listingId: string;
+}) {
   const [open, setOpen] = useState(true);
 
   return (

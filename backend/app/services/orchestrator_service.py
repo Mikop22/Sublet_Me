@@ -4,9 +4,12 @@ from datetime import datetime, timezone
 import os
 
 from app.models.orchestrator import (
+    AssistantRuntimeMetadata,
+    ChatTurn,
     ListingRecommendation,
     MatchQueryRequest,
     MatchQueryResponse,
+    OrchestratorHistoryResponse,
     OrchestratorTurnRequest,
     OrchestratorTurnResponse,
     ProfilePreferences,
@@ -71,14 +74,38 @@ class OrchestratorService:
         )
 
         confidence = 0.88 if profile.city and profile.budget else 0.64
+        listings = self._build_listing_recommendations(profile, limit=5)
+        runtime_metadata = AssistantRuntimeMetadata(
+            source=assistant_source,
+            degraded=(assistant_source == "deterministic_fallback"),
+        )
         return OrchestratorTurnResponse(
             session_id=session_id,
             assistant_message=assistant_message,
             next_action=next_action,
             confidence=confidence,
             reasons=reasons,
+            metadata=runtime_metadata,
+            listings=listings,
             updated_at=utc_now(),
         )
+
+    def get_history(self, user_sub: str, session_id: str | None = None) -> OrchestratorHistoryResponse:
+        if session_id is None:
+            session_id = self.store.get_latest_session_id(user_sub)
+        if session_id is None:
+            return OrchestratorHistoryResponse()
+        raw_turns = self.store.get_session_turns(user_sub, session_id)
+        turns = [
+            ChatTurn(
+                role=t.get("role", "unknown"),
+                message=t.get("message", ""),
+                timestamp=t.get("timestamp", utc_now()),
+                metadata=t.get("metadata", {}),
+            )
+            for t in raw_turns
+        ]
+        return OrchestratorHistoryResponse(session_id=session_id, turns=turns)
 
     def query_matches(self, payload: MatchQueryRequest) -> MatchQueryResponse:
         profile_record = self.store.get_profile(payload.user.sub)

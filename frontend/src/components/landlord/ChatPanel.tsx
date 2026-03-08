@@ -1,37 +1,41 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { X, Paperclip, Calendar } from "lucide-react";
-import type { StudentMatch, Message } from "@/lib/landlord-mock";
-import { CONVERSATIONS } from "@/lib/landlord-mock";
+import { Calendar, Paperclip, X } from "lucide-react";
+
+import { formatTourSlot } from "@/lib/landlord-detail";
+import type { LandlordMatch } from "@/lib/landlord-types";
 
 function TourProposalBubble({
   slots,
   selectedSlot,
+  disabled,
   onSelect,
 }: {
   slots: string[];
   selectedSlot?: string;
+  disabled?: boolean;
   onSelect: (slot: string) => void;
 }) {
   return (
-    <div className="bg-accent/5 border border-accent/15 rounded-2xl p-4 max-w-[280px]">
-      <p className="text-xs font-semibold text-accent mb-3">
-        Virtual tour times — pick one:
+    <div className="max-w-[280px] rounded-2xl border border-accent/15 bg-accent/5 p-4">
+      <p className="mb-3 text-xs font-semibold text-accent">
+        Virtual tour times. Pick one:
       </p>
       <div className="flex flex-col gap-2">
         {slots.map((slot) => (
           <button
             key={slot}
             onClick={() => onSelect(slot)}
-            className={`text-xs text-left px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
+            disabled={disabled}
+            className={`cursor-pointer rounded-lg border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               selectedSlot === slot
-                ? "bg-accent text-white border-accent"
+                ? "border-accent bg-accent text-white"
                 : "border-warm-gray/20 text-foreground hover:border-accent/30 hover:bg-accent/5"
             }`}
           >
-            {slot}
+            {formatTourSlot(slot)}
           </button>
         ))}
       </div>
@@ -39,18 +43,24 @@ function TourProposalBubble({
   );
 }
 
-function TourConfirmedBanner({ slot, meetLink }: { slot: string; meetLink: string }) {
+function TourConfirmedBanner({
+  slot,
+  meetLink,
+}: {
+  slot: string;
+  meetLink: string;
+}) {
   return (
-    <div className="bg-sage/5 border border-sage/20 rounded-xl px-4 py-3 flex items-center justify-between mx-4 mb-3">
+    <div className="mx-4 mb-3 flex items-center justify-between rounded-xl border border-sage/20 bg-sage/5 px-4 py-3">
       <div>
         <p className="text-xs font-semibold text-foreground">Virtual Tour Scheduled</p>
-        <p className="text-[11px] text-muted mt-0.5">{slot}</p>
+        <p className="mt-0.5 text-[11px] text-muted">{formatTourSlot(slot)}</p>
       </div>
       <a
         href={meetLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[11px] font-semibold text-accent hover:underline flex-shrink-0"
+        className="flex-shrink-0 text-[11px] font-semibold text-accent hover:underline"
       >
         Join Meet →
       </a>
@@ -60,63 +70,54 @@ function TourConfirmedBanner({ slot, meetLink }: { slot: string; meetLink: strin
 
 export function ChatPanel({
   student,
-  listingId,
   onClose,
   onScheduleTour,
-  pendingTourSlots,
+  onSendMessage,
+  onConfirmTourSlot,
+  sendingMessage = false,
+  updatingTour = false,
+  errorMessage,
 }: {
-  student: StudentMatch;
-  listingId: number;
+  student: LandlordMatch;
   onClose: () => void;
   onScheduleTour: () => void;
-  pendingTourSlots?: string[];
+  onSendMessage: (text: string) => Promise<void>;
+  onConfirmTourSlot: (slot: string) => Promise<void>;
+  sendingMessage?: boolean;
+  updatingTour?: boolean;
+  errorMessage?: string | null;
 }) {
-  const conversationKey = `${listingId}-${student.id}`;
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const existingMessages = CONVERSATIONS[conversationKey] ?? [];
-    const tourProposal: Message[] =
-      pendingTourSlots && pendingTourSlots.length > 0
-        ? [
-            {
-              id: Date.now(),
-              senderId: "landlord" as const,
-              text: "I'm available at these times — pick one that works!",
-              timestamp: new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-              type: "tour-proposal" as const,
-              tourSlots: pendingTourSlots,
-            },
-          ]
-        : [];
-    return [...existingMessages, ...tourProposal];
-  });
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const conversationReady = Boolean(student.conversationId);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [student.messages]);
 
-  const send = () => {
-    if (!input.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        senderId: "landlord",
-        text: input.trim(),
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        type: "text",
-      },
-    ]);
-    setInput("");
+  const send = async () => {
+    const message = input.trim();
+    if (!message || !conversationReady || sendingMessage) {
+      return;
+    }
+
+    try {
+      await onSendMessage(message);
+      setInput("");
+    } catch {
+      // The parent owns the error state and surfaces it in the panel.
+    }
   };
 
-  const confirmedTour = messages.find(
-    (m) => m.type === "tour-confirmed" && m.selectedSlot
-  );
+  const confirmedTour =
+    student.tour?.status === "confirmed" &&
+    student.tour.selectedSlot &&
+    student.tour.meetLink
+      ? {
+          slot: student.tour.selectedSlot,
+          meetLink: student.tour.meetLink,
+        }
+      : null;
 
   return (
     <motion.div
@@ -124,70 +125,62 @@ export function ChatPanel({
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
-      className="fixed top-0 right-0 h-full w-full max-w-[400px] bg-background border-l border-warm-gray/10 z-50 flex flex-col shadow-2xl"
+      className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[400px] flex-col border-l border-warm-gray/10 bg-background shadow-2xl"
     >
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-warm-gray/10 flex items-center gap-3 flex-shrink-0">
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-warm-gray/10 px-5 py-4">
         <img
           src={student.avatar}
           alt={student.name}
-          className="w-10 h-10 rounded-full object-cover ring-2 ring-warm-gray/10"
+          className="h-10 w-10 rounded-full object-cover ring-2 ring-warm-gray/10"
         />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground text-sm truncate">
-            {student.name}
-          </p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-foreground">{student.name}</p>
           <p className="text-[11px] text-muted">
             {student.university} · {student.match}% match
           </p>
         </div>
         <button
           onClick={onClose}
-          className="w-8 h-8 rounded-full bg-warm-gray/8 flex items-center justify-center hover:bg-warm-gray/15 transition-colors flex-shrink-0"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-warm-gray/8 transition-colors hover:bg-warm-gray/15"
         >
-          <X className="w-4 h-4 text-foreground/60" />
+          <X className="h-4 w-4 text-foreground/60" />
         </button>
       </div>
 
-      {/* Tour confirmed banner */}
-      {confirmedTour && confirmedTour.selectedSlot && confirmedTour.meetLink && (
+      {confirmedTour && (
         <TourConfirmedBanner
-          slot={confirmedTour.selectedSlot}
+          slot={confirmedTour.slot}
           meetLink={confirmedTour.meetLink}
         />
       )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-        {messages.length === 0 && (
-          <p className="text-center text-xs text-muted/60 mt-8">
+      {errorMessage && (
+        <div className="mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+          {errorMessage}
+        </div>
+      )}
+
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
+        {student.messages.length === 0 && (
+          <p className="mt-8 text-center text-xs text-muted/60">
             Start the conversation with {student.name.split(" ")[0]}.
           </p>
         )}
-        {messages.map((msg) => {
-          const isLandlord = msg.senderId === "landlord";
+        {student.messages.map((message) => {
+          const isLandlord = message.sender === "host";
 
-          if (msg.type === "tour-proposal" && msg.tourSlots) {
+          if (message.type === "tour-proposal" && message.tourSlots?.length) {
             return (
-              <div key={msg.id} className={`flex ${isLandlord ? "justify-end" : "justify-start"}`}>
+              <div
+                key={message.id}
+                className={`flex ${isLandlord ? "justify-end" : "justify-start"}`}
+              >
                 <TourProposalBubble
-                  slots={msg.tourSlots}
-                  selectedSlot={msg.selectedSlot}
+                  slots={message.tourSlots}
+                  selectedSlot={student.tour?.selectedSlot}
+                  disabled={Boolean(student.tour?.selectedSlot) || updatingTour}
                   onSelect={(slot) => {
-                    const meetLink = "https://meet.google.com/mock-link-abc";
-                    setMessages((prev) =>
-                      prev.map((m) =>
-                        m.id === msg.id ? { ...m, selectedSlot: slot } : m
-                      ).concat({
-                        id: Date.now(),
-                        senderId: "landlord",
-                        text: `Tour confirmed for ${slot}`,
-                        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                        type: "tour-confirmed",
-                        selectedSlot: slot,
-                        meetLink,
-                      })
-                    );
+                    void onConfirmTourSlot(slot);
                   }}
                 />
               </div>
@@ -196,53 +189,65 @@ export function ChatPanel({
 
           return (
             <div
-              key={msg.id}
+              key={message.id}
               className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}
             >
               <div
-                className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                   isLandlord
-                    ? "bg-foreground text-background rounded-br-sm"
-                    : "bg-surface border border-warm-gray/10 text-foreground rounded-bl-sm"
+                    ? "rounded-br-sm bg-foreground text-background"
+                    : "rounded-bl-sm border border-warm-gray/10 bg-surface text-foreground"
                 }`}
               >
-                {msg.text}
+                {message.text}
               </div>
-              <span className="text-[10px] text-muted/50">{msg.timestamp}</span>
+              <span className="text-[10px] text-muted/50">{message.timestamp}</span>
             </div>
           );
         })}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-4 py-4 border-t border-warm-gray/10 flex-shrink-0">
-        <div className="flex items-center gap-2 bg-surface border border-warm-gray/10 rounded-2xl px-3 py-2">
-          <button className="text-muted/50 hover:text-muted transition-colors flex-shrink-0 cursor-pointer">
-            <Paperclip className="w-4 h-4" />
+      <div className="flex-shrink-0 border-t border-warm-gray/10 px-4 py-4">
+        {!conversationReady && (
+          <p className="mb-3 text-xs text-muted">
+            This match does not have a seeded conversation yet.
+          </p>
+        )}
+        <div className="flex items-center gap-2 rounded-2xl border border-warm-gray/10 bg-surface px-3 py-2">
+          <button className="cursor-pointer text-muted/50 transition-colors hover:text-muted">
+            <Paperclip className="h-4 w-4" />
           </button>
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Message..."
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted/50 outline-none"
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                void send();
+              }
+            }}
+            disabled={!conversationReady || sendingMessage}
+            placeholder={conversationReady ? "Message..." : "Conversation unavailable"}
+            className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
           />
           <button
             onClick={onScheduleTour}
-            className="text-muted/50 hover:text-accent transition-colors flex-shrink-0 cursor-pointer"
+            disabled={!conversationReady || updatingTour}
+            className="cursor-pointer text-muted/50 transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
             title="Propose a tour"
           >
-            <Calendar className="w-4 h-4" />
+            <Calendar className="h-4 w-4" />
           </button>
           <button
-            onClick={send}
-            disabled={!input.trim()}
-            className="flex-shrink-0 w-7 h-7 rounded-full bg-accent flex items-center justify-center disabled:opacity-30 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+            onClick={() => {
+              void send();
+            }}
+            disabled={!conversationReady || !input.trim() || sendingMessage}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg
-              className="w-3.5 h-3.5 text-white rotate-90"
+              className="h-3.5 w-3.5 rotate-90 text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

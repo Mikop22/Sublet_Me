@@ -1,14 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { auth0 } from "@/lib/auth0";
-
-const PROTECTED_PATHS = ["/dashboard", "/create-profile", "/assistant"];
-
-function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`)
-  );
-}
+import { DEMO_LOGIN_COOKIE, getDemoUserFromCookie } from "@/lib/demo-auth";
+import { isProtectedPath } from "@/lib/route-protection";
 
 export async function middleware(request: NextRequest) {
   const response = await auth0.middleware(request);
@@ -19,6 +13,13 @@ export async function middleware(request: NextRequest) {
 
   const session = await auth0.getSession(request);
   if (session) {
+    return response;
+  }
+
+  const demoUser = getDemoUserFromCookie(
+    request.cookies.get(DEMO_LOGIN_COOKIE)?.value
+  );
+  if (demoUser) {
     return response;
   }
 

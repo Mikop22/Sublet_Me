@@ -55,12 +55,19 @@ class OrchestratorTurnRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class AssistantRuntimeMetadata(BaseModel):
+    source: str = "deterministic_fallback"
+    degraded: bool = False
+
+
 class OrchestratorTurnResponse(BaseModel):
     session_id: str
     assistant_message: str
     next_action: str
     confidence: float
     reasons: list[str] = Field(default_factory=list)
+    metadata: "AssistantRuntimeMetadata" = Field(default_factory=AssistantRuntimeMetadata)
+    listings: list["ListingRecommendation"] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=utc_now)
 
 
@@ -92,6 +99,18 @@ class RoommateRecommendation(BaseModel):
 class MatchQueryRequest(BaseModel):
     user: UserContext
     limit: int = Field(default=8, ge=1, le=20)
+
+
+class ChatTurn(BaseModel):
+    role: str
+    message: str
+    timestamp: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class OrchestratorHistoryResponse(BaseModel):
+    session_id: str | None = None
+    turns: list[ChatTurn] = Field(default_factory=list)
 
 
 class MatchQueryResponse(BaseModel):

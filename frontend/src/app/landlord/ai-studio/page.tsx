@@ -1,28 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Wand2, ImageIcon, Maximize, Eraser } from "lucide-react";
 import { cloudinaryFetchUrl } from "@/lib/cloudinary";
 
-// ————— Sample listing images to demonstrate transforms —————
-const SAMPLE_IMAGES = [
-  {
-    id: 1,
-    label: "Liberty Village Studio",
-    src: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1400&h=900&fit=crop&q=85",
-  },
-  {
-    id: 2,
-    label: "King West 1BR",
-    src: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1400&h=900&fit=crop&q=85",
-  },
-  {
-    id: 3,
-    label: "Annex Shared House",
-    src: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1400&h=900&fit=crop&q=85",
-  },
+// ————— Asset types —————
+type AssetOption = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  label: string;
+  src: string;
+};
+
+const FALLBACK_IMAGES: AssetOption[] = [
+  { id: "sample-1", listingId: "", listingTitle: "", label: "Liberty Village Studio", src: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1400&h=900&fit=crop&q=85" },
+  { id: "sample-2", listingId: "", listingTitle: "", label: "King West 1BR", src: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1400&h=900&fit=crop&q=85" },
+  { id: "sample-3", listingId: "", listingTitle: "", label: "Annex Shared House", src: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1400&h=900&fit=crop&q=85" },
 ];
 
 // ————— Available AI transforms —————
@@ -144,8 +141,37 @@ function CompareSlider({
 
 // ————— Main Page —————
 export default function AIStudioPage() {
-  const [selectedImage, setSelectedImage] = useState(SAMPLE_IMAGES[0]);
+  const searchParams = useSearchParams();
+  const preFilterListingId = searchParams.get("listingId");
+
+  const [assets, setAssets] = useState<AssetOption[]>(FALLBACK_IMAGES);
+  const [assetsLoading, setAssetsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<AssetOption>(FALLBACK_IMAGES[0]);
   const [selectedTransform, setSelectedTransform] = useState(TRANSFORMS[1]); // Default to AI Enhance
+
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const res = await fetch("/api/landlord/ai-studio", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as { assets: AssetOption[] };
+          if (data.assets.length > 0) {
+            setAssets(data.assets);
+            // Pre-select asset for the given listingId, or first asset
+            const preSelected = preFilterListingId
+              ? data.assets.find((a) => a.listingId === preFilterListingId) ?? data.assets[0]
+              : data.assets[0];
+            setSelectedImage(preSelected);
+          }
+        }
+      } catch {
+        // Keep fallback images
+      } finally {
+        setAssetsLoading(false);
+      }
+    };
+    void loadAssets();
+  }, [preFilterListingId]);
 
   const originalUrl = TRANSFORMS[0].getUrl(selectedImage.src);
   const transformedUrl = selectedTransform.getUrl(selectedImage.src);
@@ -269,7 +295,7 @@ export default function AIStudioPage() {
                 Select listing photo
               </h3>
               <div className="grid grid-cols-3 gap-2.5">
-                {SAMPLE_IMAGES.map((img) => (
+                {assets.slice(0, 9).map((img) => (
                   <motion.button
                     key={img.id}
                     onClick={() => setSelectedImage(img)}
@@ -296,6 +322,13 @@ export default function AIStudioPage() {
                 ))}
               </div>
               <p className="text-xs text-muted mt-2">{selectedImage.label}</p>
+              {assetsLoading ? (
+                <div className="text-xs text-muted">Loading your listing photos...</div>
+              ) : assets === FALLBACK_IMAGES ? (
+                <div className="text-xs text-amber-600 bg-amber-50 rounded-lg px-2 py-1 mt-1">
+                  No listing media found. Showing sample images.
+                </div>
+              ) : null}
             </div>
 
             {/* Transform picker */}

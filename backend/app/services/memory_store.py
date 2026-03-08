@@ -48,6 +48,10 @@ class MemoryStore(ABC):
     def get_session_turns(self, user_sub: str, session_id: str) -> list[dict[str, Any]]:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_latest_session_id(self, user_sub: str) -> str | None:
+        raise NotImplementedError
+
 
 class InMemoryStore(MemoryStore):
     def __init__(self) -> None:
@@ -94,6 +98,23 @@ class InMemoryStore(MemoryStore):
     def get_session_turns(self, user_sub: str, session_id: str) -> list[dict[str, Any]]:
         return list(self._sessions[user_sub].get(session_id, []))
 
+    def get_latest_session_id(self, user_sub: str) -> str | None:
+        user_sessions = self._sessions.get(user_sub)
+        if not user_sessions:
+            return None
+        # Find the session with the most recent turn timestamp
+        latest_sid: str | None = None
+        latest_ts: str = ""
+        for sid, turns in user_sessions.items():
+            if turns:
+                last_ts = turns[-1].get("timestamp", "")
+                if last_ts >= latest_ts:
+                    latest_ts = last_ts
+                    latest_sid = sid
+            elif latest_sid is None:
+                latest_sid = sid
+        return latest_sid
+
 
 class MongoMemoryStore(MemoryStore):
     """Placeholder adapter for future migration.
@@ -122,6 +143,9 @@ class MongoMemoryStore(MemoryStore):
         raise NotImplementedError("MongoMemoryStore will be added post-MVP.")
 
     def get_session_turns(self, user_sub: str, session_id: str) -> list[dict[str, Any]]:
+        raise NotImplementedError("MongoMemoryStore will be added post-MVP.")
+
+    def get_latest_session_id(self, user_sub: str) -> str | None:
         raise NotImplementedError("MongoMemoryStore will be added post-MVP.")
 
 

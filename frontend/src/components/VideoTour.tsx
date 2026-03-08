@@ -41,6 +41,12 @@ const getBrandedOverlayVideoUrl = (publicId: string, title: string, price: numbe
   return cloudinaryUrl(publicId, transforms, "video");
 };
 
+function resolveVideoSource(videoUrl: string, title: string, price: number): string {
+  return /^https?:\/\//i.test(videoUrl)
+    ? videoUrl
+    : getBrandedOverlayVideoUrl(videoUrl, title, price);
+}
+
 // ————— Component —————
 export default function VideoTourSection({
   videoUrl,
@@ -54,7 +60,7 @@ export default function VideoTourSection({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Build video URL with branded overlay (title + price text)
-  const src = getBrandedOverlayVideoUrl(videoUrl, listingTitle, price);
+  const src = resolveVideoSource(videoUrl, listingTitle, price);
 
   const handleClick = () => {
     if (!videoRef.current) return;
@@ -102,7 +108,7 @@ export default function VideoTourSection({
             <Film className="w-12 h-12 text-muted/40 mb-4" />
             <p className="text-foreground/60 font-medium mb-2">Video not available</p>
             <p className="text-sm text-muted/60">
-              The video tour for this listing hasn't been uploaded yet.
+              The video tour for this listing hasn&apos;t been uploaded yet.
             </p>
             {posterUrl && (
               <img

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "demo:smoke": "tsx scripts/demo-smoke.ts"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.16.0",

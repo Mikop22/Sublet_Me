@@ -22,7 +22,8 @@ export async function GET(request: Request) {
 
     const backendResponse = await fetch(historyUrl, { cache: "no-store" });
     const data = (await backendResponse.json()) as unknown;
-    return NextResponse.json(data, { status: backendResponse.status });
+    const { normalizeHistoryResponse } = await import("@/lib/subletops-response");
+    return NextResponse.json(normalizeHistoryResponse(data), { status: backendResponse.status });
   } catch {
     return NextResponse.json(
       { error: "SubletOps backend unavailable" },
@@ -63,14 +64,15 @@ export async function POST(request: Request) {
     const rawBody = await backendResponse.text();
     const contentType = backendResponse.headers.get("content-type") ?? "";
     const isJson = contentType.includes("application/json");
-    const payload = isJson
-      ? (JSON.parse(rawBody || "{}") as unknown)
-      : ({
-          error: "SubletOps backend returned non-JSON response",
-          details: rawBody.slice(0, 300),
-        } as const);
 
-    return NextResponse.json(payload, { status: backendResponse.status });
+    if (isJson) {
+      const { normalizeTurnResponse } = await import("@/lib/subletops-response");
+      return NextResponse.json(normalizeTurnResponse(JSON.parse(rawBody || "{}")), { status: backendResponse.status });
+    }
+    return NextResponse.json(
+      { error: "SubletOps backend returned non-JSON response", details: rawBody.slice(0, 300) },
+      { status: backendResponse.status }
+    );
   } catch {
     return NextResponse.json(
       { error: "SubletOps backend unavailable" },

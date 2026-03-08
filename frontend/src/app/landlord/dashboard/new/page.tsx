@@ -4,37 +4,9 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, X } from "lucide-react";
-import { type ListingStatus } from "@/lib/landlord-mock";
-import { TERMS } from "@/app/create-profile/shared-components";
-
-const LIFESTYLES = [
-  { label: "Early bird", emoji: "🌅" },
-  { label: "Night owl", emoji: "🦉" },
-  { label: "Quiet & studious", emoji: "📚" },
-  { label: "Social butterfly", emoji: "🦋" },
-  { label: "Introvert", emoji: "🐢" },
-  { label: "Extrovert", emoji: "🦚" },
-  { label: "Homebody", emoji: "🛋️" },
-  { label: "Party goer", emoji: "🎊" },
-  { label: "Neat freak", emoji: "✨" },
-  { label: "Cooks often", emoji: "🍳" },
-  { label: "Takeout fan", emoji: "🥡" },
-  { label: "Vegan / Veg", emoji: "🥗" },
-  { label: "Foodie", emoji: "🍜" },
-  { label: "Pet friendly", emoji: "🐾" },
-  { label: "Plant parent", emoji: "🪴" },
-  { label: "Non-smoker", emoji: "🚭" },
-  { label: "Fitness lover", emoji: "💪" },
-  { label: "Gym rat", emoji: "🏋️" },
-  { label: "Outdoorsy", emoji: "🏕️" },
-  { label: "Gamer", emoji: "🎮" },
-  { label: "Techie", emoji: "💻" },
-  { label: "Movie buff", emoji: "🍿" },
-  { label: "Bookworm", emoji: "📖" },
-  { label: "Musician", emoji: "🎸" },
-  { label: "LGBTQ+ friendly", emoji: "🌈" },
-];
+import { ArrowLeft, Upload, X, Video } from "lucide-react";
+import { ListingFormValidationError, parseListingAvailability } from "@/lib/listing-form";
+import { buildCloudinaryVideoUploadUrl } from "@/lib/cloudinary-upload";
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -42,65 +14,123 @@ export default function NewListingPage() {
   const [title, setTitle] = useState("");
   const [address, setAddress] = useState("");
   const [price, setPrice] = useState(0);
-  const [dates, setDates] = useState("");
-  const [status, setStatus] = useState<ListingStatus>("active");
-
-  // Requirements
-  const [budgetMin, setBudgetMin] = useState(0);
-  const [budgetMax, setBudgetMax] = useState(0);
-  const [lifestyleTags, setLifestyleTags] = useState<string[]>([]);
-  const [termPreference, setTermPreference] = useState("");
-  const [petPolicy, setPetPolicy] = useState<"no-pets" | "pets-ok">("no-pets");
-  const [genderPreference, setGenderPreference] = useState<"no-preference" | "male" | "female" | "non-binary">(
-    "no-preference"
-  );
-  const [occupants, setOccupants] = useState(1);
-  const [referencesRequired, setReferencesRequired] = useState(false);
+  const [datesStart, setDatesStart] = useState("");
+  const [datesEnd, setDatesEnd] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStage, setSubmitStage] = useState<"idle" | "uploading" | "done">("idle");
+  const [submitStage, setSubmitStage] = useState<
+    "idle" | "uploading" | "creating" | "processing" | "done"
+  >("idle");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [rules, setRules] = useState("");
 
   const [video, setVideo] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const toggleLifestyle = (tag: string) => {
-    setLifestyleTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+  const uploadVideoToCloudinary = async (file: File): Promise<string> => {
+    if (!file.type.startsWith("video/")) {
+      throw new ListingFormValidationError("File must be a video");
+    }
+
+    const signResponse = await fetch("/api/uploads/cloudinary-sign", {
+      method: "POST",
+    });
+    const signPayload = (await signResponse.json().catch(() => null)) as
+      | {
+          cloudName?: string;
+          apiKey?: string;
+          folder?: string;
+          timestamp?: number;
+          signature?: string;
+          error?: string;
+        }
+      | null;
+
+    if (!signResponse.ok) {
+      throw new Error(signPayload?.error ?? "Could not authorize video upload");
+    }
+
+    const uploadUrl = buildCloudinaryVideoUploadUrl(signPayload?.cloudName ?? "");
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    uploadData.append("api_key", signPayload?.apiKey ?? "");
+    uploadData.append("timestamp", String(signPayload?.timestamp ?? ""));
+    uploadData.append("signature", signPayload?.signature ?? "");
+    uploadData.append("folder", signPayload?.folder ?? "");
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      body: uploadData,
+    });
+    const uploadPayload = (await uploadResponse.json().catch(() => null)) as
+      | {
+          public_id?: string;
+          error?: {
+            message?: string;
+          };
+        }
+      | null;
+
+    if (!uploadResponse.ok || typeof uploadPayload?.public_id !== "string") {
+      throw new Error(
+        uploadPayload?.error?.message ?? "Could not upload video to Cloudinary"
+      );
+    }
+
+    return uploadPayload.public_id;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStage("uploading");
+    setSubmitError(null);
 
-    const fd = new FormData();
-    if (video) fd.append("video", video);
-    fd.append("title", title);
-    fd.append("address", address);
-    fd.append("price", String(price));
-    fd.append("datesStart", dates.split(" - ")[0] ?? "");
-    fd.append("datesEnd", dates.split(" - ")[1] ?? "");
-    fd.append("status", status);
-    fd.append("budgetMin", String(budgetMin));
-    fd.append("budgetMax", String(budgetMax));
-    fd.append("termPreference", termPreference);
-    fd.append("petPolicy", petPolicy);
-    fd.append("genderPreference", genderPreference);
-    fd.append("occupants", String(occupants));
-    fd.append("referencesRequired", String(referencesRequired));
-    fd.append("lifestyleTags", JSON.stringify(lifestyleTags));
+    try {
+      parseListingAvailability({ datesStart, datesEnd });
 
-    const res = await fetch("/api/pipeline/process", { method: "POST", body: fd });
+      if (!video) {
+        throw new ListingFormValidationError("Property video is required");
+      }
 
-    setSubmitStage("done");
-    if (res.ok) {
-      router.push("/landlord/dashboard");
-      router.refresh();
-    } else {
+      setIsSubmitting(true);
+      setSubmitStage("uploading");
+
+      const videoPublicId = await uploadVideoToCloudinary(video);
+      setSubmitStage("creating");
+
+      const res = await fetch("/api/pipeline/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoPublicId,
+          title,
+          address,
+          price,
+          datesStart,
+          datesEnd,
+          status: "active",
+          rules: rules.trim() ? rules.split(/\n|,/).map((r) => r.trim()).filter(Boolean) : [],
+        }),
+      });
+      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+
+      setSubmitStage("done");
+      if (res.ok) {
+        setSubmitStage("processing");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        router.push("/landlord/dashboard");
+        router.refresh();
+        return;
+      }
+
+      throw new Error(payload?.error ?? "Could not create listing");
+    } catch (error) {
       setIsSubmitting(false);
       setSubmitStage("idle");
+      setSubmitError(
+        error instanceof Error ? error.message : "Could not create listing"
+      );
     }
   };
 
@@ -111,352 +141,243 @@ export default function NewListingPage() {
     >
       {/* Nav */}
       <nav className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-warm-gray/10">
-        <div className="px-6 lg:px-10 h-16 flex items-center justify-between">
+        <div className="px-6 lg:px-10 h-14 flex items-center justify-between">
           <Link
             href="/"
             className="font-serif text-xs tracking-[0.25em] uppercase font-semibold text-foreground"
           >
             SUBLET-<span className="text-accent">ME</span>
           </Link>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-orange-400 flex items-center justify-center text-white font-semibold text-sm cursor-pointer ring-2 ring-background shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-orange-400 flex items-center justify-center text-white font-semibold text-xs cursor-pointer ring-2 ring-background shadow-sm">
             J
           </div>
         </div>
       </nav>
 
-      {/* Page header */}
-      <div className="max-w-4xl mx-auto px-6 lg:px-10 pt-8 pb-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Link
-            href="/landlord/dashboard"
-            className="flex items-center gap-1.5 text-muted text-sm hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-          <span className="text-warm-gray/30">/</span>
+      <div className="max-w-3xl mx-auto px-6 lg:px-10 pt-6 pb-8">
+        {/* Back link */}
+        <Link
+          href="/landlord/dashboard"
+          className="inline-flex items-center gap-1.5 text-muted text-sm hover:text-foreground transition-colors mb-5"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Dashboard
+        </Link>
+
+        {/* Hero */}
+        <div className="mb-6">
           <h1
-            className="text-foreground text-xl tracking-tight"
+            className="text-2xl md:text-3xl text-foreground tracking-tight"
             style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
           >
-            Create Listing
+            Post your place in seconds
           </h1>
+          <p className="text-muted text-sm mt-1.5">
+            Upload a video walkthrough and we handle the rest — photos, descriptions, and matching.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8 pb-20">
-          {/* Basic Information */}
-          <div className="space-y-5">
-            <h2
-              className="text-foreground text-lg tracking-tight mb-4"
-              style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
-            >
-              Basic Information
-            </h2>
-
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Left column — Video upload */}
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Title
+              <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-2">
+                Video walkthrough
               </label>
+              {videoPreview ? (
+                <div className="relative rounded-xl overflow-hidden border-2 border-warm-gray/20">
+                  <video
+                    src={videoPreview}
+                    controls
+                    className="w-full h-52 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (videoPreview) URL.revokeObjectURL(videoPreview);
+                      setVideoPreview(null);
+                      setVideo(null);
+                      if (videoInputRef.current) videoInputRef.current.value = "";
+                    }}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  className="w-full h-52 rounded-xl border-2 border-dashed border-warm-gray/30 hover:border-accent/40 bg-warm-gray/5 flex flex-col items-center justify-center gap-2 transition-colors group cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-full bg-accent/10 group-hover:bg-accent/20 flex items-center justify-center transition-colors">
+                    <Video className="w-6 h-6 text-accent" />
+                  </div>
+                  <span className="text-sm font-medium text-muted group-hover:text-foreground transition-colors">
+                    Click to upload video
+                  </span>
+                  <span className="text-xs text-muted/60">MP4, MOV, or WEBM</span>
+                </button>
+              )}
               <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                required
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (videoPreview) URL.revokeObjectURL(videoPreview);
+                  setVideo(file);
+                  setVideoPreview(URL.createObjectURL(file));
+                }}
               />
+              <p className="text-[11px] text-muted/60 mt-2">
+                We extract photos, generate a highlight clip, and write the description from your video.
+              </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Address
-              </label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            {/* Right column — Details */}
+            <div className="space-y-3.5">
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Monthly Price ($)
-                </label>
-                <input
-                  type="number"
-                  value={price || ""}
-                  onChange={(e) => setPrice(Number(e.target.value))}
-                  className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                  required
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Availability Dates
+                <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+                  Title
                 </label>
                 <input
                   type="text"
-                  value={dates}
-                  onChange={(e) => setDates(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Sunny Studio near campus"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-warm-gray/5 border border-warm-gray/20 text-foreground text-sm focus:outline-none focus:border-accent/40 transition-colors"
                   required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ListingStatus)}
-                className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-              >
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-                <option value="filled">Filled</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Property Video
-              </label>
-              <div className="space-y-3">
-                {videoPreview && (
-                  <div className="relative w-full rounded-xl overflow-hidden border-2 border-warm-gray/20">
-                    <video
-                      src={videoPreview}
-                      controls
-                      className="w-full max-h-72 object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (videoPreview) URL.revokeObjectURL(videoPreview);
-                        setVideoPreview(null);
-                        setVideo(null);
-                        if (videoInputRef.current) videoInputRef.current.value = "";
-                      }}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setVideo(file);
-                    setVideoPreview(URL.createObjectURL(file));
-                  }}
-                  className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Requirements */}
-          <div className="space-y-5">
-            <h2
-              className="text-foreground text-lg tracking-tight mb-4"
-              style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
-            >
-              Requirements
-            </h2>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Minimum Budget ($)
-                </label>
-                <input
-                  type="number"
-                  value={budgetMin || ""}
-                  onChange={(e) => setBudgetMin(Number(e.target.value))}
-                  className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                  required
-                  min="0"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Maximum Budget ($)
+                <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+                  Address
                 </label>
                 <input
-                  type="number"
-                  value={budgetMax || ""}
-                  onChange={(e) => setBudgetMax(Number(e.target.value))}
-                  className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="123 College St, Toronto"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-warm-gray/5 border border-warm-gray/20 text-foreground text-sm focus:outline-none focus:border-accent/40 transition-colors"
                   required
-                  min="0"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Term Preference
-              </label>
-              <select
-                value={termPreference}
-                onChange={(e) => setTermPreference(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                required
-              >
-                <option value="">Select term</option>
-                {TERMS.map((term) => (
-                  <option key={term} value={term}>
-                    {term}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Pet Policy
-              </label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPetPolicy("no-pets")}
-                  className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
-                    petPolicy === "no-pets"
-                      ? "border-accent bg-accent/5 text-foreground"
-                      : "border-warm-gray/20 bg-warm-gray/5 text-muted hover:border-warm-gray/30"
-                  }`}
-                >
-                  No Pets
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPetPolicy("pets-ok")}
-                  className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
-                    petPolicy === "pets-ok"
-                      ? "border-accent bg-accent/5 text-foreground"
-                      : "border-warm-gray/20 bg-warm-gray/5 text-muted hover:border-warm-gray/30"
-                  }`}
-                >
-                  Pets OK
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Gender Preference
-              </label>
-              <select
-                value={genderPreference}
-                onChange={(e) =>
-                  setGenderPreference(
-                    e.target.value as "no-preference" | "male" | "female" | "non-binary"
-                  )
-                }
-                className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-              >
-                <option value="no-preference">No Preference</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="non-binary">Non-binary</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted mb-2">
-                Number of Occupants
-              </label>
-              <input
-                type="number"
-                value={occupants}
-                onChange={(e) => setOccupants(Number(e.target.value))}
-                className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                required
-                min="1"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="references"
-                checked={referencesRequired}
-                onChange={(e) => setReferencesRequired(e.target.checked)}
-                className="w-5 h-5 rounded border-warm-gray/30 text-accent focus:ring-accent/20 cursor-pointer"
-              />
-              <label htmlFor="references" className="text-sm text-foreground cursor-pointer">
-                References Required
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted mb-3">
-                Lifestyle Tags
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {LIFESTYLES.map(({ label, emoji }) => {
-                  const selected = lifestyleTags.includes(label);
-                  return (
-                    <motion.button
-                      key={label}
-                      type="button"
-                      onClick={() => toggleLifestyle(label)}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                        selected
-                          ? "bg-foreground text-surface"
-                          : "bg-warm-gray/10 text-foreground/70 hover:bg-warm-gray/20"
-                      }`}
-                    >
-                      <span>{emoji}</span>
-                      {label}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Submit buttons */}
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-warm-gray/10">
-            <Link
-              href="/landlord/dashboard"
-              className="px-6 py-3 rounded-xl border border-warm-gray/20 text-sm font-medium text-muted hover:bg-warm-gray/5 transition-colors"
-            >
-              Cancel
-            </Link>
-            <motion.button
-              type="submit"
-              disabled={isSubmitting}
-              whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-              whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-              className="px-6 py-3 rounded-xl bg-accent text-white text-sm font-semibold shadow-[0_4px_20px_rgba(232,93,74,0.25)] hover:shadow-[0_6px_30px_rgba(232,93,74,0.35)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <motion.div
-                    className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
+              <div>
+                <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+                  Monthly rent
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-sm">$</span>
+                  <input
+                    type="number"
+                    value={price || ""}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    placeholder="1200"
+                    className="w-full pl-7 pr-3.5 py-2.5 rounded-lg bg-warm-gray/5 border border-warm-gray/20 text-foreground text-sm focus:outline-none focus:border-accent/40 transition-colors"
+                    required
+                    min="0"
                   />
-                  {submitStage === "uploading" ? "Uploading video..." : "Creating listing..."}
-                </span>
-              ) : (
-                "Create Listing"
-              )}
-            </motion.button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+                    Move-in
+                  </label>
+                  <input
+                    type="date"
+                    value={datesStart}
+                    onChange={(e) => setDatesStart(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-warm-gray/5 border border-warm-gray/20 text-foreground text-sm focus:outline-none focus:border-accent/40 transition-colors"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+                    Move-out
+                  </label>
+                  <input
+                    type="date"
+                    value={datesEnd}
+                    min={datesStart || undefined}
+                    onChange={(e) => setDatesEnd(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-warm-gray/5 border border-warm-gray/20 text-foreground text-sm focus:outline-none focus:border-accent/40 transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+                  House rules <span className="normal-case text-muted/50">(optional)</span>
+                </label>
+                <textarea
+                  value={rules}
+                  onChange={(e) => setRules(e.target.value)}
+                  placeholder="No smoking, quiet hours after 10pm..."
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-warm-gray/5 border border-warm-gray/20 text-foreground text-sm focus:outline-none focus:border-accent/40 transition-colors resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Submit area */}
+          <div className="mt-6">
+            {submitStage === "processing" && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p className="font-semibold">Listing created! Video processing has started.</p>
+                <p className="mt-1 text-amber-700">
+                  Gallery images and the highlight clip will appear automatically.
+                </p>
+              </div>
+            )}
+            {submitError && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <Link
+                href="/landlord/dashboard"
+                className="px-5 py-2.5 rounded-lg border border-warm-gray/20 text-sm font-medium text-muted hover:bg-warm-gray/5 transition-colors"
+              >
+                Cancel
+              </Link>
+              <motion.button
+                type="submit"
+                disabled={isSubmitting}
+                whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+                className="px-5 py-2.5 rounded-lg bg-accent text-white text-sm font-semibold shadow-[0_4px_20px_rgba(232,93,74,0.25)] hover:shadow-[0_6px_30px_rgba(232,93,74,0.35)] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <motion.div
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
+                    />
+                    {submitStage === "uploading"
+                      ? "Uploading video..."
+                      : submitStage === "processing"
+                        ? "Processing started..."
+                        : "Creating listing..."}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Create Listing
+                  </>
+                )}
+              </motion.button>
+            </div>
           </div>
         </form>
       </div>

@@ -4,26 +4,35 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, X } from "lucide-react";
-import type { Listing, ListingStatus } from "@/lib/landlord-mock";
+import type {
+  LandlordListingStatus,
+  LandlordListingSummary,
+} from "@/lib/landlord-types";
 
-const STATUS_STYLES: Record<ListingStatus, string> = {
+const STATUS_STYLES: Record<LandlordListingStatus, string> = {
   active: "bg-sage/10 text-sage border-sage/20",
   paused: "bg-warm-gray/10 text-muted border-warm-gray/20",
   filled: "bg-accent/10 text-accent border-accent/20",
 };
 
-const STATUS_LABELS: Record<ListingStatus, string> = {
+const STATUS_LABELS: Record<LandlordListingStatus, string> = {
   active: "Active",
   paused: "Paused",
   filled: "Filled",
 };
 
-export function LandlordListingCard({ listing }: { listing: Listing }) {
+export function LandlordListingCard({
+  listing,
+}: {
+  listing: LandlordListingSummary;
+}) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState<ListingStatus>(listing.status);
+  const [currentStatus, setCurrentStatus] = useState<LandlordListingStatus>(
+    listing.status
+  );
 
   const handlePause = async () => {
     setMenuOpen(false);
@@ -46,12 +55,18 @@ export function LandlordListingCard({ listing }: { listing: Listing }) {
     setShowDeleteConfirm(false);
     setMenuOpen(false);
     setIsProcessing(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    // In a real app, you would delete the listing here
-    // For now, just refresh the page
+
+    try {
+      const res = await fetch(`/api/landlord/listings/${listing.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        console.error("Delete failed:", await res.text());
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+
     router.refresh();
     setIsProcessing(false);
   };
@@ -71,14 +86,44 @@ export function LandlordListingCard({ listing }: { listing: Listing }) {
     >
       {/* Image */}
       <div className="relative h-[200px] overflow-hidden">
-        <motion.img
-          src={listing.image}
-          alt={listing.title}
-          className="w-full h-full object-cover"
-          whileHover={{ scale: 1.06 }}
-          transition={{ duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        {listing.image ? (
+          <motion.img
+            src={listing.image}
+            alt={listing.title}
+            className="w-full h-full object-cover"
+            whileHover={{ scale: 1.06 }}
+            transition={{ duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-warm-gray/20 via-warm-gray/10 to-background flex items-center justify-center">
+            <div className="text-center px-6">
+              <p className="text-sm font-semibold text-foreground/80">
+                {listing.videoProcessing ? "Processing your video" : "No cover image yet"}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                {listing.videoProcessing
+                  ? "AI will generate the gallery shortly."
+                  : "Add media to improve your listing preview."}
+              </p>
+            </div>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+
+        <div className="absolute left-3 top-3 flex flex-col gap-2">
+          <span
+            className={`w-fit rounded-full border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm ${
+              STATUS_STYLES[currentStatus]
+            } bg-white/90`}
+          >
+            {STATUS_LABELS[currentStatus]}
+          </span>
+          {listing.videoProcessing && (
+            <span className="w-fit rounded-full border border-amber-400/30 bg-amber-50/95 px-2.5 py-1 text-[11px] font-semibold text-amber-700 backdrop-blur-sm">
+              Processing video
+            </span>
+          )}
+        </div>
 
         {/* 3-dot menu */}
         <div className="absolute top-3 right-3">
@@ -206,7 +251,7 @@ export function LandlordListingCard({ listing }: { listing: Listing }) {
                       Delete listing?
                     </h3>
                     <p className="text-muted text-sm leading-relaxed">
-                      Are you sure you want to delete <span className="font-medium text-foreground">"{listing.title}"</span>? This action cannot be undone.
+                      Are you sure you want to delete <span className="font-medium text-foreground">&quot;{listing.title}&quot;</span>? This action cannot be undone.
                     </p>
                   </div>
                   <button

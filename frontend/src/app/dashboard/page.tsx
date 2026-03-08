@@ -399,11 +399,15 @@ function ListingCard({
 
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-2">
-            <img
-              src={listing.host.avatar}
-              alt={listing.host.name}
-              className="w-6 h-6 rounded-full object-cover ring-1 ring-warm-gray/20"
-            />
+            {listing.host.avatar ? (
+              <img
+                src={listing.host.avatar}
+                alt={listing.host.name}
+                className="w-6 h-6 rounded-full object-cover ring-1 ring-warm-gray/20"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-warm-gray/20 ring-1 ring-warm-gray/20" />
+            )}
             <div>
               <p className="text-xs font-medium text-foreground leading-tight">
                 {listing.host.name}
@@ -493,6 +497,9 @@ function RoommateCard({
   );
 }
 
+// ————— Module-level listings cache (persists across navigations) —————
+let _listingsCache: Listing[] | null = null;
+
 // ————— Main Dashboard —————
 export default function DashboardPage() {
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
@@ -501,7 +508,8 @@ export default function DashboardPage() {
     name: "Student",
   });
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
-  const [recommendedListings, setRecommendedListings] = useState<Listing[]>(LISTINGS);
+  const [recommendedListings, setRecommendedListings] = useState<Listing[]>(_listingsCache ?? []);
+  const [listingsLoading, setListingsLoading] = useState(_listingsCache === null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -527,52 +535,19 @@ export default function DashboardPage() {
         // No-op: keep fallback identity if profile endpoint is unavailable.
       }
 
+      if (_listingsCache !== null) return;
+
       try {
-        const matchesResponse = await fetch("/api/subletops/matches", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ limit: 8 }),
-        });
-        if (!matchesResponse.ok) return;
+        const listingsResponse = await fetch("/api/listings");
+        if (!listingsResponse.ok) return;
 
-        const payload = (await matchesResponse.json()) as SubletOpsMatchResponse;
-        if (payload.profile) {
-          setPreferences({
-            city: payload.profile.city ?? DEFAULT_PREFERENCES.city,
-            term: payload.profile.term ?? DEFAULT_PREFERENCES.term,
-            budget: payload.profile.budget ?? DEFAULT_PREFERENCES.budget,
-            lifestyles:
-              payload.profile.lifestyle_tags?.length
-                ? payload.profile.lifestyle_tags
-                : DEFAULT_PREFERENCES.lifestyles,
-            university:
-              payload.profile.university ?? DEFAULT_PREFERENCES.university,
-          });
-        }
-
-        if (payload.listings?.length) {
-          setRecommendedListings(
-            payload.listings.map((listing, idx) => ({
-              id: Number(listing.id.replace("listing-", "")) || idx + 1,
-              title: listing.title,
-              address: listing.address,
-              price: listing.price,
-              dates: listing.dates,
-              image: listing.image,
-              host: {
-                name: listing.host_name,
-                uni: listing.host_university,
-                avatar: listing.host_avatar,
-              },
-              sharedTags: [],
-              match: listing.match,
-              beds: listing.beds,
-              type: listing.type,
-            }))
-          );
-        }
+        const mongoListings = await listingsResponse.json();
+        _listingsCache = mongoListings;
+        setRecommendedListings(mongoListings);
       } catch {
-        // Keep fallback mock recommendations when orchestrator is unavailable.
+        // Keep fallback mock recommendations when API is unavailable.
+      } finally {
+        setListingsLoading(false);
       }
     };
 
@@ -600,7 +575,6 @@ export default function DashboardPage() {
     window.location.assign("/auth/logout");
   };
 
-  const topPicks = LISTINGS.filter((l) => l.match >= 90).sort(
   const topPicks = recommendedListings.filter((l) => l.match >= 90).sort(
     (a, b) => b.match - a.match
   );
@@ -625,10 +599,9 @@ export default function DashboardPage() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
           <Link
             href="/"
-            className="text-foreground tracking-tight text-xl"
-            style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
+            className="font-serif text-xs tracking-[0.25em] uppercase font-semibold text-foreground"
           >
-            Sublet-Me
+            SUBLET-<span className="text-accent">ME</span>
           </Link>
 
           <div className="flex items-center gap-4">
@@ -644,12 +617,6 @@ export default function DashboardPage() {
               className="text-xs font-medium text-muted hover:text-foreground transition-colors"
             >
               Assistant
-            </Link>
-            <Link
-              href="/api/auth/logout"
-              className="text-xs font-medium text-muted hover:text-foreground transition-colors"
-            >
-              Log out
             </Link>
             {/* Saved count */}
             {savedIds.size > 0 && (
@@ -736,6 +703,13 @@ export default function DashboardPage() {
           </Link>
         </motion.div>
       </section>
+
+      {/* ————— Listings (fade in once loaded) ————— */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: listingsLoading ? 0 : 1 }}
+        transition={{ duration: 0.4 }}
+      >
 
       {/* ————— Top Picks: Horizontal Scroll ————— */}
       <section className="mt-10">
@@ -895,6 +869,8 @@ export default function DashboardPage() {
           </div>
         </section>
       </Reveal>
+
+      </motion.div>
 
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-6">

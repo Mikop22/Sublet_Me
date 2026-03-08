@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, use } from "react";
+import { useState, useRef, use, useEffect } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,9 @@ type ExtendedListing = {
   type: string;
   images: string[];
   videoTour?: string; // Cloudinary public ID or URL for house tour video
+  videoPublicId?: string;
+  videoProcessing?: boolean;
+  enrichmentStatus?: string;
   host: {
     name: string;
     uni: string;
@@ -419,6 +422,8 @@ const LISTINGS: Record<number, ExtendedListing> = {
   },
 };
 
+void LISTINGS;
+
 // ─── Match Score Ring ─────────────────────────────────────────────────────────
 function MatchRing({ score }: { score: number }) {
   const r = 38;
@@ -461,7 +466,7 @@ function MatchRing({ score }: { score: number }) {
 }
 
 // ─── Request Tour Button ──────────────────────────────────────────────────────
-function TourButton({ listing }: { listing: ExtendedListing }) {
+function TourButton() {
   const [state, setState] = useState<"idle" | "loading" | "done">("idle");
 
   const handleClick = () => {
@@ -544,29 +549,41 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 export default function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id: idParam } = use(params);
-  const id = parseInt(idParam, 10);
-  const listing = LISTINGS[id];
+  const [listing, setListing] = useState<ExtendedListing | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.3]);
 
-  if (!listing) {
+  useEffect(() => {
+    fetch(`/api/listings/${idParam}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) setListing(data);
+      })
+      .finally(() => setLoading(false));
+  }, [idParam]);
+
+  // Always render heroRef so useScroll ref stays hydrated
+  if (loading || !listing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-muted mb-4">Listing not found.</p>
-          <Link href="/dashboard" className="text-accent underline cursor-pointer">Back to matches</Link>
-        </div>
+      <div className="min-h-screen bg-background">
+        <div ref={heroRef} />
+        {!loading && (
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-center">
+              <p className="text-muted mb-4">Listing not found.</p>
+              <Link href="/dashboard" className="text-accent underline cursor-pointer">Back to matches</Link>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  const others = Object.values(LISTINGS)
-    .filter((l) => l.id !== listing.id)
-    .sort((a, b) => b.match - a.match)
-    .slice(0, 3);
+  const others: ExtendedListing[] = [];
 
   const totalMonths = 4;
   const total = listing.price * totalMonths;
@@ -625,7 +642,7 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
           }}
         />
         {/* Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
         {/* Bottom text */}
         <div className="absolute bottom-0 left-0 right-0 px-6 lg:px-12 pb-10">
@@ -660,24 +677,48 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* ── Photo gallery strip ── */}
-      <FadeIn className="max-w-[1400px] mx-auto px-6 lg:px-12 mt-5">
-        <div className="grid grid-cols-4 gap-2.5">
-          {listing.images.slice(1, 5).map((img, i) => (
-            <div key={i} className="aspect-[4/3] rounded-xl overflow-hidden">
-              <motion.img
-                src={img}
-                alt=""
-                className="w-full h-full object-cover"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.4 }}
-              />
-            </div>
-          ))}
-        </div>
-      </FadeIn>
+      {listing.videoProcessing ? (
+        <FadeIn className="max-w-[1400px] mx-auto px-6 lg:px-12 mt-5">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-5">
+            <p className="text-sm font-semibold text-amber-900">
+              Media is being processed.
+            </p>
+            <p className="mt-1 text-sm text-amber-800/80">
+              Gallery images are being generated by the AI pipeline. Refresh this page shortly to see them.
+            </p>
+          </div>
+        </FadeIn>
+      ) : listing.images.length <= 1 && !listing.videoProcessing ? (
+        <FadeIn className="max-w-[1400px] mx-auto px-6 lg:px-12 mt-5">
+          <div className="rounded-2xl border border-warm-gray/20 bg-surface px-6 py-5">
+            <p className="text-sm font-semibold text-foreground">
+              Media generation did not complete.
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              Gallery images could not be generated for this listing. The listing is still fully usable.
+            </p>
+          </div>
+        </FadeIn>
+      ) : (
+        <FadeIn className="max-w-[1400px] mx-auto px-6 lg:px-12 mt-5">
+          <div className="grid grid-cols-4 gap-2.5">
+            {listing.images.slice(1, 5).map((img, i) => (
+              <div key={i} className="aspect-[4/3] rounded-xl overflow-hidden">
+                <motion.img
+                  src={img}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+      )}
 
       {/* ── Video Tour ── */}
-      {listing.videoTour && (
+      {listing.videoTour ? (
         <FadeIn className="max-w-[1400px] mx-auto px-6 lg:px-12 mt-12">
           <VideoTourSection
             videoUrl={listing.videoTour}
@@ -686,7 +727,18 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
             posterUrl={listing.images[0]}
           />
         </FadeIn>
-      )}
+      ) : listing.videoProcessing ? (
+        <FadeIn className="max-w-[1400px] mx-auto px-6 lg:px-12 mt-12">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-5">
+            <p className="text-sm font-semibold text-amber-900">
+              Video tour is still processing.
+            </p>
+            <p className="mt-1 text-sm text-amber-800/80">
+              The AI pipeline is generating the highlight clip now. Refresh this page in a bit to view it.
+            </p>
+          </div>
+        </FadeIn>
+      ) : null}
 
       {/* ── Main content ── */}
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12 py-12">
@@ -738,15 +790,19 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
                 What&rsquo;s included
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {listing.amenities.map((a) => (
-                  <div
-                    key={a.label}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-surface border border-warm-gray/10"
-                  >
-                    <span className="text-foreground/50">{a.icon}</span>
-                    <span className="text-sm font-medium text-foreground">{a.label}</span>
-                  </div>
-                ))}
+                {listing.amenities.map((a) => {
+                  const label = typeof a === "string" ? a : a.label;
+                  const icon = typeof a === "string" ? null : a.icon;
+                  return (
+                    <div
+                      key={label}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-surface border border-warm-gray/10"
+                    >
+                      {icon && <span className="text-foreground/50">{icon}</span>}
+                      <span className="text-sm font-medium text-foreground">{label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </FadeIn>
 
@@ -915,7 +971,7 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
 
                 {/* CTAs */}
                 <div className="px-7 py-6 space-y-3">
-                  <TourButton listing={listing} />
+                  <TourButton />
                   <button className="w-full py-3.5 rounded-2xl font-semibold text-sm text-foreground bg-warm-gray/8 hover:bg-warm-gray/15 transition-colors cursor-pointer border border-warm-gray/15">
                     Send a message
                   </button>

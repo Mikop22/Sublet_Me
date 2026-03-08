@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion";
 import { MessageSquare, Video } from "lucide-react";
-import type { StudentMatch } from "@/lib/landlord-mock";
+import { formatTourSlot } from "@/lib/landlord-detail";
+import type { LandlordMatch } from "@/lib/landlord-types";
 
 export function StudentMatchCard({
   student,
@@ -10,7 +11,7 @@ export function StudentMatchCard({
   onMessage,
   onScheduleTour,
 }: {
-  student: StudentMatch;
+  student: LandlordMatch;
   listingRequirementTags: string[];
   onMessage: () => void;
   onScheduleTour: () => void;
@@ -72,6 +73,17 @@ export function StudentMatchCard({
           </span>
         ))}
       </div>
+
+      {student.tour && (
+        <div className="mb-4 rounded-xl border border-accent/10 bg-accent/5 px-3 py-2">
+          <p className="text-[11px] font-semibold text-accent">
+            {student.tour.status === "confirmed" ? "Tour confirmed" : "Tour proposed"}
+          </p>
+          <p className="mt-1 text-[11px] text-muted">
+            {formatTourSlot(student.tour.selectedSlot ?? student.tour.proposedSlots[0])}
+          </p>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">

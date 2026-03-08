@@ -5,16 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   stepVariants,
-  stagger,
   StepBasics,
   StepLocation,
   StepLifestyle,
   StepFinish,
   AmbientPanel,
   SuccessScreen,
-  CITIES,
-  TERMS,
-  LIFESTYLES,
 } from "../shared-components";
 
 const STEPS = [
@@ -54,8 +50,6 @@ export default function FindPlacePage() {
   const [avatar, setAvatar] = useState<string | null>(null);
 
   const totalSteps = 4;
-  const userType = "tenant"; // Pre-set for find place flow
-
   const goNext = () => {
     if (step < totalSteps - 1) {
       setDirection(1);
@@ -85,7 +79,7 @@ export default function FindPlacePage() {
   };
 
   if (isComplete) {
-    return <SuccessScreen name={name} />;
+    return <SuccessScreen name={name} userType="tenant" />;
   }
 
   return (
