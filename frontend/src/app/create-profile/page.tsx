@@ -33,37 +33,18 @@ const LIFESTYLES = [
   { label: "Takeout fan", emoji: "🥡" },
   { label: "Vegan / Veg", emoji: "🥗" },
   { label: "Foodie", emoji: "🍜" },
-  { label: "Coffee addict", emoji: "☕" },
   { label: "Pet friendly", emoji: "🐾" },
   { label: "Plant parent", emoji: "🪴" },
-  { label: "420 friendly", emoji: "🌿" },
   { label: "Non-smoker", emoji: "🚭" },
-  { label: "Teetotaler / Sober", emoji: "🥤" },
-  { label: "Wine lover", emoji: "🍷" },
   { label: "Fitness lover", emoji: "💪" },
   { label: "Gym rat", emoji: "🏋️" },
-  { label: "Runner", emoji: "🏃" },
-  { label: "Yogi", emoji: "🧘" },
   { label: "Outdoorsy", emoji: "🏕️" },
-  { label: "Sports fan", emoji: "🏀" },
   { label: "Gamer", emoji: "🎮" },
   { label: "Techie", emoji: "💻" },
   { label: "Movie buff", emoji: "🍿" },
-  { label: "Binge watcher", emoji: "📺" },
   { label: "Bookworm", emoji: "📖" },
   { label: "Musician", emoji: "🎸" },
-  { label: "Artist", emoji: "🎨" },
-  { label: "Photographer", emoji: "📷" },
   { label: "LGBTQ+ friendly", emoji: "🌈" },
-  { label: "Eco-friendly", emoji: "♻️" },
-  { label: "Astrology fan", emoji: "⭐" },
-  { label: "Christian", emoji: "✝️" },
-  { label: "Muslim", emoji: "☪️" },
-  { label: "Jewish", emoji: "✡️" },
-  { label: "Hindu", emoji: "🕉️" },
-  { label: "Buddhist", emoji: "☸️" },
-  { label: "Atheist / Agnostic", emoji: "🌌" },
-  { label: "Spiritual", emoji: "🔮" },
 ];
 
 const STEPS = [
@@ -702,8 +683,8 @@ function StepLifestyle({
   toggleLifestyle: (tag: string) => void;
 }) {
   return (
-    <motion.div variants={stagger} initial="enter" animate="center" className="space-y-4">
-      <motion.div variants={staggerChild} className="flex flex-wrap gap-3">
+    <motion.div variants={stagger} initial="enter" animate="center" className="space-y-4 w-full pb-4">
+      <motion.div variants={staggerChild} className="flex flex-wrap gap-3 w-full">
         {LIFESTYLES.map(({ label, emoji }) => {
           const selected = selectedLifestyles.includes(label);
           return (
@@ -834,7 +815,9 @@ function StepFinish({
 }
 
 // ————— Success Screen —————
-function SuccessScreen({ name }: { name: string }) {
+function SuccessScreen({ name, userType }: { name: string; userType: "tenant" | "host" | "" }) {
+  const dashboardPath = userType === "host" ? "/landlord/dashboard" : "/dashboard";
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface relative overflow-hidden">
       {/* Celebration effects */}
@@ -893,8 +876,8 @@ function SuccessScreen({ name }: { name: string }) {
           transition={{ delay: 0.7 }}
         >
           <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 bg-foreground text-surface font-semibold px-8 py-4 rounded-full hover:bg-foreground/90 transition-colors"
+            href={dashboardPath}
+            className="inline-flex items-center gap-2 bg-foreground text-surface font-semibold px-8 py-4 rounded-full hover:bg-foreground/90 transition-colors cursor-pointer"
             style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
           >
             Start browsing
@@ -1019,7 +1002,7 @@ export default function CreateProfilePage() {
   };
 
   if (isComplete) {
-    return <SuccessScreen name={name} />;
+    return <SuccessScreen name={name} userType={userType} />;
   }
 
   return (
@@ -1050,7 +1033,7 @@ export default function CreateProfilePage() {
         <div className="relative z-10 px-14">
           <Link
             href="/"
-            className="text-white/30 text-xs tracking-[0.25em] uppercase font-semibold hover:text-white/60 transition-colors"
+            className="text-white/30 text-xs tracking-[0.25em] uppercase font-semibold hover:text-white/60 transition-colors cursor-pointer"
             style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
           >
             Sublet-<span className="text-accent">Me</span>
@@ -1077,7 +1060,7 @@ export default function CreateProfilePage() {
           </Link>
           <Link
             href="/"
-            className="text-muted/50 hover:text-foreground transition-colors ml-auto p-2 rounded-full hover:bg-warm-gray/10"
+            className="text-muted/50 hover:text-foreground transition-colors ml-auto p-2 rounded-full hover:bg-warm-gray/10 cursor-pointer"
           >
             <svg
               className="w-5 h-5"
@@ -1116,8 +1099,8 @@ export default function CreateProfilePage() {
         </div>
 
         {/* Form content */}
-        <div className="flex-1 flex flex-col px-[6%] xl:px-[8%] py-6 w-full overflow-y-auto">
-          <div className="flex-1 flex flex-col justify-center min-h-0">
+        <div className="flex-1 flex flex-col px-[6%] xl:px-[8%] py-6 w-full min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
@@ -1127,7 +1110,7 @@ export default function CreateProfilePage() {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.4, ease: [0.33, 1, 0.68, 1] }}
-                className="flex flex-col"
+                className="flex flex-col flex-1 min-h-0 overflow-hidden"
               >
               {/* Step header */}
               <div className="mb-6 flex-shrink-0">
@@ -1145,7 +1128,7 @@ export default function CreateProfilePage() {
               </div>
 
                 {/* Step body */}
-                <div className="overflow-y-auto">
+                <div className="flex-1 min-h-0 overflow-y-auto pb-4">
                 {userType === "host" ? (
                   // Host flow: 2 steps (Basics, Finish)
                   step === 0 ? (
@@ -1258,6 +1241,7 @@ export default function CreateProfilePage() {
               </motion.button>
             ) : (
               <MagneticButton
+                onClick={step === totalSteps - 1 ? handleSubmit : goNext}
                 onClick={() => {
                   if (!isStepValid()) return;
                   if (step === totalSteps - 1) {
@@ -1267,7 +1251,7 @@ export default function CreateProfilePage() {
                   goNext();
                 }}
                 className={`font-semibold rounded-full text-base min-w-[170px] transition-all duration-300 ${
-                  !isStepValid() ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                  !isStepValid() ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
                 } ${
                   step === totalSteps - 1
                     ? "bg-accent text-white px-8 py-4 shadow-[0_8px_30px_rgba(232,93,74,0.25)] hover:shadow-[0_12px_40px_rgba(232,93,74,0.35)]"

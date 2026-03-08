@@ -4,6 +4,7 @@ import { useState, useRef, use } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import VideoTourSection from "@/components/VideoTour";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type MatchReason = { label: string; matched: boolean; detail: string };
@@ -19,6 +20,7 @@ type ExtendedListing = {
   baths: number;
   type: string;
   images: string[];
+  videoTour?: string; // Cloudinary public ID or URL for house tour video
   host: {
     name: string;
     uni: string;
@@ -213,6 +215,7 @@ const LISTINGS: Record<number, ExtendedListing> = {
       "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1400&h=900&fit=crop&q=85",
       ...G,
     ],
+    videoTour: "distillery-loft-tour_ocntxd", // Cloudinary public ID - your uploaded video
     host: {
       name: "Priya Patel",
       uni: "University of Toronto",
@@ -554,7 +557,7 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-muted mb-4">Listing not found.</p>
-          <Link href="/dashboard" className="text-accent underline">Back to matches</Link>
+          <Link href="/dashboard" className="text-accent underline cursor-pointer">Back to matches</Link>
         </div>
       </div>
     );
@@ -672,6 +675,18 @@ export default function ListingPage({ params }: { params: Promise<{ id: string }
           ))}
         </div>
       </FadeIn>
+
+      {/* ── Video Tour ── */}
+      {listing.videoTour && (
+        <FadeIn className="max-w-[1400px] mx-auto px-6 lg:px-12 mt-12">
+          <VideoTourSection
+            videoUrl={listing.videoTour}
+            listingTitle={listing.title}
+            price={listing.price}
+            posterUrl={listing.images[0]}
+          />
+        </FadeIn>
+      )}
 
       {/* ── Main content ── */}
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12 py-12">

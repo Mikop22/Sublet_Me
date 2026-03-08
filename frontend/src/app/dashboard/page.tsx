@@ -496,6 +496,7 @@ function RoommateCard({
 // ————— Main Dashboard —————
 export default function DashboardPage() {
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [authProfile, setAuthProfile] = useState<AuthProfile>({
     name: "Student",
   });
@@ -587,6 +588,19 @@ export default function DashboardPage() {
     });
   };
 
+  const openLogoutConfirm = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const closeLogoutConfirm = () => {
+    setShowLogoutConfirm(false);
+  };
+
+  const confirmLogout = () => {
+    window.location.assign("/auth/logout");
+  };
+
+  const topPicks = LISTINGS.filter((l) => l.match >= 90).sort(
   const topPicks = recommendedListings.filter((l) => l.match >= 90).sort(
     (a, b) => b.match - a.match
   );
@@ -618,6 +632,13 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={openLogoutConfirm}
+              className="text-xs font-medium text-muted hover:text-foreground transition-colors cursor-pointer"
+            >
+              Log out
+            </button>
             <Link
               href="/assistant"
               className="text-xs font-medium text-muted hover:text-foreground transition-colors"
@@ -874,6 +895,51 @@ export default function DashboardPage() {
           </div>
         </section>
       </Reveal>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-6">
+          <button
+            type="button"
+            aria-label="Close logout confirmation"
+            onClick={closeLogoutConfirm}
+            className="absolute inset-0 bg-foreground/35 backdrop-blur-[2px]"
+          />
+
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full max-w-md rounded-3xl bg-surface border border-warm-gray/15 p-6 md:p-7 shadow-xl"
+          >
+            <h3
+              className="text-foreground text-2xl tracking-tight"
+              style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
+            >
+              Log out?
+            </h3>
+            <p className="text-sm text-muted mt-2">
+              You’ll need to sign in again to access your dashboard.
+            </p>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeLogoutConfirm}
+                className="px-4 py-2.5 rounded-full text-sm font-semibold text-foreground bg-warm-gray/10 hover:bg-warm-gray/15 transition-colors border border-warm-gray/15 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-accent hover:bg-accent/90 transition-colors cursor-pointer"
+              >
+                Log out
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* ————— Footer ————— */}
       <footer className="border-t border-warm-gray/10 py-8">

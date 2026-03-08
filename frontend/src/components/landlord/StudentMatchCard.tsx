@@ -77,14 +77,14 @@ export function StudentMatchCard({
       <div className="flex gap-2">
         <button
           onClick={onMessage}
-          className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-foreground bg-warm-gray/8 hover:bg-warm-gray/15 transition-colors border border-warm-gray/10 flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-foreground bg-warm-gray/8 hover:bg-warm-gray/15 transition-colors border border-warm-gray/10 flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <MessageSquare className="w-3.5 h-3.5" />
           Message
         </button>
         <button
           onClick={onScheduleTour}
-          className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-accent hover:bg-accent/90 transition-colors flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(232,93,74,0.25)]"
+          className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-accent hover:bg-accent/90 transition-colors flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(232,93,74,0.25)] cursor-pointer"
         >
           <Video className="w-3.5 h-3.5" />
           Schedule Tour
