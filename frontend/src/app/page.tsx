@@ -3,9 +3,9 @@ import ScrollTicker from "@/components/ScrollTicker";
 import CityGrid from "@/components/CityGrid";
 import SocialProof from "@/components/SocialProof";
 import HowItWorks from "@/components/HowItWorks";
+import Link from "next/link";
 
 import CTASection from "@/components/CTASection";
-import Link from "next/link";
 
 export default function Home() {
   return (
@@ -18,12 +18,20 @@ export default function Home() {
           SUBLET-<span className="text-accent">ME</span>
         </Link>
         <div className="pointer-events-auto">
-          <a
-            className="bg-transparent text-foreground border border-warm-gray text-sm md:text-base font-semibold px-6 py-2.5 rounded-full hover:border-foreground/30 transition-colors cursor-pointer shadow-sm"
-            href="/login?returnTo=/create-profile"
-          >
-            Log in
-          </a>
+          <div className="flex items-center gap-2">
+            <Link
+              className="bg-transparent text-foreground border border-warm-gray text-sm md:text-base font-semibold px-4 md:px-6 py-2.5 rounded-full hover:border-foreground/30 transition-colors cursor-pointer shadow-sm"
+              href="/assistant"
+            >
+              Try assistant
+            </Link>
+            <Link
+              className="bg-transparent text-foreground border border-warm-gray text-sm md:text-base font-semibold px-4 md:px-6 py-2.5 rounded-full hover:border-foreground/30 transition-colors cursor-pointer shadow-sm"
+              href="/login?returnTo=/create-profile"
+            >
+              Log in
+            </Link>
+          </div>
         </div>
       </header>
 

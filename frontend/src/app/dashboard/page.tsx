@@ -229,6 +229,30 @@ type AuthProfile = {
   picture?: string;
 };
 
+type SubletOpsMatchResponse = {
+  profile?: {
+    city?: string | null;
+    term?: string | null;
+    budget?: number | null;
+    university?: string | null;
+    lifestyle_tags?: string[];
+  };
+  listings?: Array<{
+    id: string;
+    title: string;
+    address: string;
+    price: number;
+    dates: string;
+    image: string;
+    host_name: string;
+    host_university: string;
+    host_avatar: string;
+    match: number;
+    beds: number;
+    type: string;
+  }>;
+};
+
 // ————— Animated Counter —————
 function AnimatedCount({ target }: { target: number }) {
   const [count, setCount] = useState(0);
@@ -476,12 +500,14 @@ export default function DashboardPage() {
   const [authProfile, setAuthProfile] = useState<AuthProfile>({
     name: "Student",
   });
+  const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
+  const [recommendedListings, setRecommendedListings] = useState<Listing[]>(LISTINGS);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const loadUserProfile = async () => {
+    const loadDashboardState = async () => {
       try {
-        const response = await fetch("/auth/profile");
+        const response = await fetch("/api/auth/profile");
         if (!response.ok) return;
 
         const profile = (await response.json()) as Record<string, unknown>;
@@ -500,9 +526,57 @@ export default function DashboardPage() {
       } catch {
         // No-op: keep fallback identity if profile endpoint is unavailable.
       }
+
+      try {
+        const matchesResponse = await fetch("/api/subletops/matches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ limit: 8 }),
+        });
+        if (!matchesResponse.ok) return;
+
+        const payload = (await matchesResponse.json()) as SubletOpsMatchResponse;
+        if (payload.profile) {
+          setPreferences({
+            city: payload.profile.city ?? DEFAULT_PREFERENCES.city,
+            term: payload.profile.term ?? DEFAULT_PREFERENCES.term,
+            budget: payload.profile.budget ?? DEFAULT_PREFERENCES.budget,
+            lifestyles:
+              payload.profile.lifestyle_tags?.length
+                ? payload.profile.lifestyle_tags
+                : DEFAULT_PREFERENCES.lifestyles,
+            university:
+              payload.profile.university ?? DEFAULT_PREFERENCES.university,
+          });
+        }
+
+        if (payload.listings?.length) {
+          setRecommendedListings(
+            payload.listings.map((listing, idx) => ({
+              id: Number(listing.id.replace("listing-", "")) || idx + 1,
+              title: listing.title,
+              address: listing.address,
+              price: listing.price,
+              dates: listing.dates,
+              image: listing.image,
+              host: {
+                name: listing.host_name,
+                uni: listing.host_university,
+                avatar: listing.host_avatar,
+              },
+              sharedTags: [],
+              match: listing.match,
+              beds: listing.beds,
+              type: listing.type,
+            }))
+          );
+        }
+      } catch {
+        // Keep fallback mock recommendations when orchestrator is unavailable.
+      }
     };
 
-    void loadUserProfile();
+    void loadDashboardState();
   }, []);
 
   const toggleSave = (id: number) => {
@@ -527,17 +601,18 @@ export default function DashboardPage() {
   };
 
   const topPicks = LISTINGS.filter((l) => l.match >= 90).sort(
+  const topPicks = recommendedListings.filter((l) => l.match >= 90).sort(
     (a, b) => b.match - a.match
   );
-  const allListings = LISTINGS.sort((a, b) => b.match - a.match);
+  const allListings = [...recommendedListings].sort((a, b) => b.match - a.match);
 
   const greeting = getGreeting();
-  const matchCount = LISTINGS.length;
+  const matchCount = recommendedListings.length;
   const filterPills = [
-    DEFAULT_PREFERENCES.city,
-    DEFAULT_PREFERENCES.term,
-    `Under $${DEFAULT_PREFERENCES.budget}/mo`,
-    ...DEFAULT_PREFERENCES.lifestyles,
+    preferences.city,
+    preferences.term,
+    `Under $${preferences.budget}/mo`,
+    ...preferences.lifestyles,
   ];
 
   return (
@@ -564,6 +639,18 @@ export default function DashboardPage() {
             >
               Log out
             </button>
+            <Link
+              href="/assistant"
+              className="text-xs font-medium text-muted hover:text-foreground transition-colors"
+            >
+              Assistant
+            </Link>
+            <Link
+              href="/api/auth/logout"
+              className="text-xs font-medium text-muted hover:text-foreground transition-colors"
+            >
+              Log out
+            </Link>
             {/* Saved count */}
             {savedIds.size > 0 && (
               <motion.div
@@ -619,7 +706,7 @@ export default function DashboardPage() {
             <AnimatedCount target={matchCount} /> places waiting
             <br />
             for you in{" "}
-            <span className="text-accent">{DEFAULT_PREFERENCES.city}</span>.
+            <span className="text-accent">{preferences.city}</span>.
           </h1>
         </motion.div>
 

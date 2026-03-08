@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+export const dynamic = "force-dynamic";
+
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") || "/";
   const [email, setEmail] = useState("");
@@ -16,7 +18,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     // Redirect to Auth0 login with returnTo parameter
-    const loginUrl = `/auth/login${returnTo && returnTo !== "/" ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
+    const loginUrl = `/api/auth/login${returnTo && returnTo !== "/" ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
     window.location.href = loginUrl;
   };
 
@@ -133,7 +135,7 @@ export default function LoginPage() {
                 onClick={(e) => {
                   e.preventDefault();
                   // Redirect to Auth0 password reset
-                  window.location.href = `/auth/login?screen_hint=forgot`;
+                  window.location.href = `/api/auth/login?screen_hint=forgot`;
                 }}
               >
                 Forgot password?
@@ -153,13 +155,13 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-muted">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <a
                 href="#"
                 className="text-accent hover:text-accent/80 font-semibold transition-colors"
                 onClick={(e) => {
                   e.preventDefault();
-                  window.location.href = `/auth/login?screen_hint=signup`;
+                  window.location.href = `/api/auth/login?screen_hint=signup`;
                 }}
               >
                 Sign up
@@ -181,7 +183,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => {
-              window.location.href = `/auth/login?connection=google-oauth2${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}`;
+              window.location.href = `/api/auth/login?connection=google-oauth2${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}`;
             }}
             className="w-full flex items-center justify-center gap-3 bg-white border border-warm-gray text-foreground font-semibold py-3.5 px-6 rounded-xl hover:bg-background active:scale-[0.98] transition-all shadow-sm"
           >
@@ -218,5 +220,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

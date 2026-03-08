@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { auth0 } from "@/lib/auth0";
 
-const PROTECTED_PATHS = ["/dashboard", "/create-profile"];
+const PROTECTED_PATHS = ["/dashboard", "/create-profile", "/assistant"];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATHS.some(
@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const loginUrl = new URL("/login", request.url);
+  const loginUrl = new URL("/api/auth/login", request.url);
   loginUrl.searchParams.set("returnTo", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
 }
