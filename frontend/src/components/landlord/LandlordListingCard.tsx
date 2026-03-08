@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, X } from "lucide-react";
 import type { Listing, ListingStatus } from "@/lib/landlord-mock";
 
 const STATUS_STYLES: Record<ListingStatus, string> = {
@@ -17,13 +19,55 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
 };
 
 export function LandlordListingCard({ listing }: { listing: Listing }) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState<ListingStatus>(listing.status);
+
+  const handlePause = async () => {
+    setMenuOpen(false);
+    setIsProcessing(true);
+    
+    // Update status immediately for UI feedback
+    const newStatus = currentStatus === "paused" ? "active" : "paused";
+    setCurrentStatus(newStatus);
+    
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    // In a real app, you would update the listing status here
+    // For now, just refresh the page
+    router.refresh();
+    setIsProcessing(false);
+  };
+
+  const handleDelete = async () => {
+    setShowDeleteConfirm(false);
+    setMenuOpen(false);
+    setIsProcessing(true);
+    
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    // In a real app, you would delete the listing here
+    // For now, just refresh the page
+    router.refresh();
+    setIsProcessing(false);
+  };
+
+  const openDeleteConfirm = () => {
+    setMenuOpen(false);
+    setShowDeleteConfirm(true);
+  };
 
   return (
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
-      className="group relative rounded-2xl overflow-hidden bg-surface border border-warm-gray/10"
+      className={`group relative rounded-2xl overflow-hidden bg-surface border border-warm-gray/10 ${
+        currentStatus === "paused" ? "opacity-60 grayscale" : ""
+      }`}
     >
       {/* Image */}
       <div className="relative h-[200px] overflow-hidden">
@@ -74,22 +118,26 @@ export function LandlordListingCard({ listing }: { listing: Listing }) {
                 >
                   Edit
                 </Link>
-                {["Pause", "Delete"].map((action) => (
-                  <button
-                    key={action}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${
-                      action === "Delete"
-                        ? "text-red-500 hover:bg-red-50"
-                        : "text-foreground hover:bg-warm-gray/8"
-                    }`}
-                  >
-                    {action}
-                  </button>
-                ))}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePause();
+                  }}
+                  disabled={isProcessing}
+                  className="w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer text-foreground hover:bg-warm-gray/8 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {currentStatus === "paused" ? "Resume" : "Pause"}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openDeleteConfirm();
+                  }}
+                  disabled={isProcessing}
+                  className="w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Delete
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -122,6 +170,72 @@ export function LandlordListingCard({ listing }: { listing: Listing }) {
           View matches
         </Link>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowDeleteConfirm(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="bg-surface rounded-2xl shadow-xl border border-warm-gray/10 max-w-md w-full p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3
+                      className="text-foreground text-lg font-semibold mb-2"
+                      style={{ fontFamily: "var(--font-dm-serif), Georgia, serif" }}
+                    >
+                      Delete listing?
+                    </h3>
+                    <p className="text-muted text-sm leading-relaxed">
+                      Are you sure you want to delete <span className="font-medium text-foreground">"{listing.title}"</span>? This action cannot be undone.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="w-8 h-8 rounded-full hover:bg-warm-gray/10 flex items-center justify-center transition-colors flex-shrink-0"
+                  >
+                    <X className="w-4 h-4 text-muted" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-4 py-2 rounded-xl text-sm font-medium text-muted hover:bg-warm-gray/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isProcessing}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
