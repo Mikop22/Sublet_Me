@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,9 +43,8 @@ export default function NewListingPage() {
   const [address, setAddress] = useState("");
   const [price, setPrice] = useState(0);
   const [dates, setDates] = useState("");
-  const [image, setImage] = useState("");
   const [status, setStatus] = useState<ListingStatus>("active");
-  
+
   // Requirements
   const [budgetMin, setBudgetMin] = useState(0);
   const [budgetMax, setBudgetMax] = useState(0);
@@ -59,19 +58,11 @@ export default function NewListingPage() {
   const [referencesRequired, setReferencesRequired] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [submitStage, setSubmitStage] = useState<"idle" | "uploading" | "done">("idle");
 
-  const handleImageUpload = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setImagePreview(result);
-      setImage(result);
-    };
-    reader.readAsDataURL(file);
-  }, []);
+  const [video, setVideo] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const toggleLifestyle = (tag: string) => {
     setLifestyleTags((prev) =>
@@ -82,14 +73,35 @@ export default function NewListingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    // In a real app, you would create the listing here
-    // For now, just navigate back to dashboard
-    router.push("/landlord/dashboard");
-    router.refresh();
+    setSubmitStage("uploading");
+
+    const fd = new FormData();
+    if (video) fd.append("video", video);
+    fd.append("title", title);
+    fd.append("address", address);
+    fd.append("price", String(price));
+    fd.append("datesStart", dates.split(" - ")[0] ?? "");
+    fd.append("datesEnd", dates.split(" - ")[1] ?? "");
+    fd.append("status", status);
+    fd.append("budgetMin", String(budgetMin));
+    fd.append("budgetMax", String(budgetMax));
+    fd.append("termPreference", termPreference);
+    fd.append("petPolicy", petPolicy);
+    fd.append("genderPreference", genderPreference);
+    fd.append("occupants", String(occupants));
+    fd.append("referencesRequired", String(referencesRequired));
+    fd.append("lifestyleTags", JSON.stringify(lifestyleTags));
+
+    const res = await fetch("/api/pipeline/process", { method: "POST", body: fd });
+
+    setSubmitStage("done");
+    if (res.ok) {
+      router.push("/landlord/dashboard");
+      router.refresh();
+    } else {
+      setIsSubmitting(false);
+      setSubmitStage("idle");
+    }
   };
 
   return (
@@ -213,22 +225,22 @@ export default function NewListingPage() {
 
             <div>
               <label className="block text-sm font-medium text-muted mb-2">
-                Listing Image
+                Property Video
               </label>
               <div className="space-y-3">
-                {imagePreview && (
-                  <div className="relative w-full h-64 rounded-xl overflow-hidden border-2 border-warm-gray/20">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
+                {videoPreview && (
+                  <div className="relative w-full rounded-xl overflow-hidden border-2 border-warm-gray/20">
+                    <video
+                      src={videoPreview}
+                      controls
+                      className="w-full max-h-72 object-cover"
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        setImagePreview(null);
-                        setImage("");
-                        if (fileInputRef.current) fileInputRef.current.value = "";
+                        setVideoPreview(null);
+                        setVideo(null);
+                        if (videoInputRef.current) videoInputRef.current.value = "";
                       }}
                       className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
                     >
@@ -237,23 +249,15 @@ export default function NewListingPage() {
                   </div>
                 )}
                 <input
-                  ref={fileInputRef}
+                  ref={videoInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="video/*"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) handleImageUpload(file);
+                    if (!file) return;
+                    setVideo(file);
+                    setVideoPreview(URL.createObjectURL(file));
                   }}
-                  className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
-                />
-                <input
-                  type="text"
-                  value={image}
-                  onChange={(e) => {
-                    setImage(e.target.value);
-                    setImagePreview(e.target.value);
-                  }}
-                  placeholder="Or enter image URL"
                   className="w-full px-4 py-3 rounded-xl bg-warm-gray/5 border-2 border-warm-gray/20 text-foreground focus:outline-none focus:border-accent/40 transition-colors"
                 />
               </div>
@@ -446,7 +450,7 @@ export default function NewListingPage() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
                   />
-                  Creating...
+                  {submitStage === "uploading" ? "Uploading video..." : "Creating listing..."}
                 </span>
               ) : (
                 "Create Listing"
