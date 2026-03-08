@@ -59,45 +59,6 @@ type RoundResult = {
   reviewResult: ReviewResult | null;
 };
 
-// ── Agent system prompts (verbatim from test-pipeline.ts) ────────────────────
-const CURATOR_PROMPT = `You are an expert real estate photographer for a student sublet platform.
-
-You receive a list of video frames extracted from apartment tour videos. Each frame has:
-- An index number
-- A timestamp (seconds into the video)
-- AI-detected content tags (may be empty)
-- A thumbnail URL
-
-Your job: Select the 5-6 BEST frames for a property listing photo gallery.
-
-RULES:
-1. ALWAYS select 5-6 frames, even if tags are empty. Use timestamp spacing to ensure variety.
-2. Pick frames from different parts of the video (early, middle, late) to cover different rooms.
-3. First selected frame = hero/thumbnail image — pick one from roughly 20-40% into the video (past the entry).
-4. Avoid first and last frames (usually entry/exit).
-5. Space selections at least 2 frames apart to avoid duplicate rooms.
-6. If tags ARE available, use them to ensure room variety (kitchen, living, bedroom, bathroom, view).
-7. If you receive feedback from a reviewer, incorporate it into your selection.
-
-Return ONLY valid JSON with keys: selected (array of frame indices), hero (single index), labels (object mapping index to room guess), reasoning (one sentence).`;
-
-const REVIEWER_PROMPT = `You are a quality assurance reviewer for a student sublet listing platform.
-
-You review frame selections made by a Curator agent for apartment listing photo galleries.
-
-EVALUATION CRITERIA:
-1. ROOM DIVERSITY: Are at least 3 distinct room types represented? (kitchen, living room, bedroom, bathroom, balcony/view)
-2. NO DUPLICATES: Are any two selected frames within 5 seconds of each other? That likely means duplicate rooms.
-3. TAG COVERAGE: If most frames had tags but selected ones don't, that's suspicious — the curator may have ignored useful data.
-4. HERO QUALITY: Is the hero frame from roughly 20-40% into the video? (Not the very start or end)
-5. SPREAD: Are selections distributed across the video timeline, not clustered in one section?
-
-SCORING:
-- If 4-5 criteria pass: approve
-- If 2-3 criteria fail: retry with specific feedback
-
-Return ONLY valid JSON with keys: verdict ("approved" or "retry"), feedback (specific issues to fix, or "Looks good" if approved).`;
-
 // ── Backboard helpers ────────────────────────────────────────────────────────
 async function createThread(assistantId: string): Promise<string> {
   const res = await fetch(`${BB_BASE}/assistants/${assistantId}/threads`, {
@@ -107,6 +68,7 @@ async function createThread(assistantId: string): Promise<string> {
       "Content-Type": "application/json",
     },
   });
+  if (!res.ok) throw new Error(`createThread failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
   return data.thread_id;
 }
@@ -121,6 +83,7 @@ async function sendMessage(threadId: string, content: string): Promise<string> {
       stream: "false",
     }),
   });
+  if (!res.ok) throw new Error(`sendMessage failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
   return data.content;
 }
@@ -368,10 +331,14 @@ export async function runVideoPipeline(
   videoBuffer: Buffer,
   listingId: string
 ): Promise<void> {
+  // Assistants pre-provisioned with prompts in Backboard dashboard
   const curatorId = process.env.CURATOR_ASSISTANT_ID!;
   const reviewerId = process.env.REVIEWER_ASSISTANT_ID!;
 
   try {
+    // 0. Connect to DB early — fail fast if unavailable
+    await connectDB();
+
     // 1. Upload video
     const { publicId, duration } = await uploadVideo(videoBuffer);
 
@@ -439,10 +406,12 @@ export async function runVideoPipeline(
     const { curatorResult, frames } = finalRound;
 
     // Build gallery image URLs from selected frame indices
-    const images = curatorResult.selected.map((idx) => {
-      const frame = frames.find((f) => f.index === idx);
-      return frame?.imageUrl ?? "";
-    });
+    const images = curatorResult.selected
+      .map((idx) => {
+        const frame = frames.find((f) => f.index === idx);
+        return frame?.imageUrl;
+      })
+      .filter((url): url is string => Boolean(url));
 
     // Put hero image first
     const heroFrame = frames.find((f) => f.index === curatorResult.hero);
@@ -456,7 +425,6 @@ export async function runVideoPipeline(
     }
 
     // 5. Patch listing in MongoDB
-    await connectDB();
     await Listing.findByIdAndUpdate(listingId, {
       images,
       videoPublicId: publicId,
