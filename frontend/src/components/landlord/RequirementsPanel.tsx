@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Settings2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import type { Requirements } from "@/lib/landlord-mock";
 
 const GENDER_LABELS: Record<string, string> = {
@@ -17,7 +18,7 @@ const PET_LABELS: Record<string, string> = {
   "pets-ok": "Pets OK",
 };
 
-export function RequirementsPanel({ requirements }: { requirements: Requirements }) {
+export function RequirementsPanel({ requirements, listingId }: { requirements: Requirements; listingId: number }) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -81,9 +82,12 @@ export function RequirementsPanel({ requirements }: { requirements: Requirements
             </div>
 
             <div className="px-5 pb-4">
-              <button className="w-full py-2.5 rounded-xl text-xs font-semibold text-accent border border-accent/20 hover:bg-accent/5 transition-colors">
+              <Link
+                href={`/landlord/dashboard/${listingId}/edit`}
+                className="w-full py-2.5 rounded-xl text-xs font-semibold text-accent border border-accent/20 hover:bg-accent/5 transition-colors block text-center"
+              >
                 Edit requirements
-              </button>
+              </Link>
             </div>
           </motion.div>
         )}

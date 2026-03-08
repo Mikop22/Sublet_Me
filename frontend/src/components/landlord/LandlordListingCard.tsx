@@ -65,7 +65,16 @@ export function LandlordListingCard({ listing }: { listing: Listing }) {
                 transition={{ duration: 0.15 }}
                 className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-warm-gray/10 py-1 w-36 z-20"
               >
-                {["Edit", "Pause", "Delete"].map((action) => (
+                <Link
+                  href={`/landlord/dashboard/${listing.id}/edit`}
+                  onClick={() => {
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer text-foreground hover:bg-warm-gray/8 block"
+                >
+                  Edit
+                </Link>
+                {["Pause", "Delete"].map((action) => (
                   <button
                     key={action}
                     onClick={(e) => {
