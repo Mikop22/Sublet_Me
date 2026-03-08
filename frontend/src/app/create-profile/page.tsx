@@ -1241,7 +1241,6 @@ export default function CreateProfilePage() {
               </motion.button>
             ) : (
               <MagneticButton
-                onClick={step === totalSteps - 1 ? handleSubmit : goNext}
                 onClick={() => {
                   if (!isStepValid()) return;
                   if (step === totalSteps - 1) {
