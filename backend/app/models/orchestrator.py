@@ -60,6 +60,7 @@ class OrchestratorTurnResponse(BaseModel):
     assistant_message: str
     next_action: str
     confidence: float
+    listings: list["ListingRecommendation"] = Field(default_factory=list)
     reasons: list[str] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -67,6 +68,7 @@ class OrchestratorTurnResponse(BaseModel):
 class ListingRecommendation(BaseModel):
     id: str
     title: str
+    url: str | None = None
     address: str
     city: str
     price: int
@@ -101,3 +103,15 @@ class MatchQueryResponse(BaseModel):
     confidence: float
     next_action: str
     reasons: list[str] = Field(default_factory=list)
+
+
+class TurnMessage(BaseModel):
+    role: str
+    message: str
+    timestamp: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class OrchestratorHistoryResponse(BaseModel):
+    session_id: str | None = None
+    turns: list[TurnMessage] = Field(default_factory=list)

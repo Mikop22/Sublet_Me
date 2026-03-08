@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from app.models.orchestrator import (
     MatchQueryRequest,
     MatchQueryResponse,
+    OrchestratorHistoryResponse,
     OrchestratorTurnRequest,
     OrchestratorTurnResponse,
     ProfileUpsertRequest,
@@ -45,3 +46,12 @@ def query_matches(
     service: OrchestratorService = Depends(get_orchestrator_service),
 ) -> MatchQueryResponse:
     return service.query_matches(payload)
+
+
+@router.get("/orchestrator/history", response_model=OrchestratorHistoryResponse)
+def orchestrator_history(
+    user_sub: str,
+    session_id: str | None = None,
+    service: OrchestratorService = Depends(get_orchestrator_service),
+) -> OrchestratorHistoryResponse:
+    return service.get_history(user_sub=user_sub, session_id=session_id)
