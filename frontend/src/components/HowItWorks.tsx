@@ -103,7 +103,7 @@ function StickyCard({ step, index, totalSteps }: { step: typeof steps[0]; index:
     }, [isInView]);
 
     return (
-        <div ref={cardRef} className="h-screen flex items-center sticky top-0" style={{ zIndex: index + 1 }}>
+        <div ref={cardRef} className="min-h-[80vh] sm:h-screen flex items-center sticky top-0" style={{ zIndex: index + 1 }}>
             {/* Wrapper handles the scroll animations for both the card and the detached image simultaneously */}
             <motion.div
                 className="relative w-full max-w-[1400px] mx-auto"
@@ -124,10 +124,10 @@ function StickyCard({ step, index, totalSteps }: { step: typeof steps[0]; index:
                         </svg>
                     </div>
 
-                    <div className="relative z-10 px-8 md:px-14 lg:px-20 py-16 md:py-20 lg:py-24 min-h-[70vh] flex flex-col justify-between">
+                    <div className="relative z-10 px-5 sm:px-8 md:px-14 lg:px-20 py-10 sm:py-16 md:py-20 lg:py-24 min-h-[55vh] sm:min-h-[65vh] md:min-h-[70vh] flex flex-col justify-between">
                         {/* Top row — number and step count */}
-                        <div className="flex items-start justify-between mb-12 md:mb-16">
-                            <span className={`font-serif text-[8rem] md:text-[12rem] lg:text-[16rem] leading-none ${step.mutedText} select-none tracking-tighter opacity-30`}>
+                        <div className="flex items-start justify-between mb-6 sm:mb-12 md:mb-16">
+                            <span className={`font-serif text-[5rem] sm:text-[8rem] md:text-[12rem] lg:text-[16rem] leading-none ${step.mutedText} select-none tracking-tighter opacity-30`}>
                                 {step.number}
                             </span>
                         </div>
@@ -138,10 +138,10 @@ function StickyCard({ step, index, totalSteps }: { step: typeof steps[0]; index:
                                 <div className="flex items-center gap-4 mb-5">
                                     <StepVisual visual={step.visual} accentBg={step.accentBg} />
                                 </div>
-                                <h3 className={`font-serif text-4xl md:text-5xl lg:text-6xl ${step.text} leading-[1.05] tracking-tight mb-4`}>
+                                <h3 className={`font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl ${step.text} leading-[1.05] tracking-tight mb-3 sm:mb-4`}>
                                     {step.title}
                                 </h3>
-                                <p className={`${step.mutedText} text-base md:text-lg leading-relaxed max-w-lg`}>
+                                <p className={`${step.mutedText} text-sm sm:text-base md:text-lg leading-relaxed max-w-lg`}>
                                     {step.description}
                                 </p>
                             </div>
@@ -179,9 +179,9 @@ function StickyCard({ step, index, totalSteps }: { step: typeof steps[0]; index:
 
 export default function HowItWorks() {
     return (
-        <section className="relative px-6 lg:px-10">
+        <section className="relative px-4 sm:px-6 lg:px-10">
             {/* Section intro */}
-            <div className="max-w-[1400px] mx-auto pt-[27.6rem] pb-8">
+            <div className="max-w-[1400px] mx-auto pt-32 sm:pt-52 md:pt-72 lg:pt-[27.6rem] pb-8">
                 <motion.p
                     className="text-accent font-semibold text-sm tracking-widest uppercase mb-4"
                     initial={{ opacity: 0, y: 20 }}
@@ -192,7 +192,7 @@ export default function HowItWorks() {
                     How it works
                 </motion.p>
                 <motion.h2
-                    className="font-serif text-5xl md:text-7xl lg:text-[5.5rem] tracking-tight leading-[0.95] text-foreground mb-4"
+                    className="font-serif text-4xl sm:text-5xl md:text-7xl lg:text-[5.5rem] tracking-tight leading-[0.95] text-foreground mb-4"
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}

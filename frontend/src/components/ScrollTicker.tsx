@@ -22,14 +22,14 @@ export default function ScrollTicker() {
     return (
         <div
             ref={containerRef}
-            className="py-16 overflow-hidden border-y border-warm-gray/30"
+            className="py-8 sm:py-16 overflow-hidden border-y border-warm-gray/30"
         >
             {/* Row 1 — moves left on scroll */}
-            <motion.div className="flex items-center gap-8 mb-6 whitespace-nowrap" style={{ x: x1 }}>
+            <motion.div className="flex items-center gap-4 sm:gap-8 mb-4 sm:mb-6 whitespace-nowrap" style={{ x: x1 }}>
                 {[...universities, ...universities].map((uni, i) => (
                     <span
                         key={`r1-${i}`}
-                        className="text-2xl md:text-3xl lg:text-4xl font-serif text-warm-gray tracking-tight select-none"
+                        className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-serif text-warm-gray tracking-tight select-none"
                     >
                         {uni}
                     </span>
@@ -37,11 +37,11 @@ export default function ScrollTicker() {
             </motion.div>
 
             {/* Row 2 — moves right on scroll */}
-            <motion.div className="flex items-center gap-8 whitespace-nowrap" style={{ x: x2 }}>
+            <motion.div className="flex items-center gap-4 sm:gap-8 whitespace-nowrap" style={{ x: x2 }}>
                 {[...universities.slice().reverse(), ...universities.slice().reverse()].map((uni, i) => (
                     <span
                         key={`r2-${i}`}
-                        className="text-2xl md:text-3xl lg:text-4xl font-serif text-warm-gray/60 tracking-tight select-none"
+                        className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-serif text-warm-gray/60 tracking-tight select-none"
                     >
                         {uni}
                     </span>

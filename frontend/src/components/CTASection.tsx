@@ -18,7 +18,7 @@ export default function CTASection() {
     return (
         <section ref={sectionRef} className="pt-12 pb-0">
             <motion.div
-                className="relative overflow-hidden bg-accent text-white min-h-[70vh] flex items-center justify-center px-8 py-20 md:py-28"
+                className="relative overflow-hidden bg-accent text-white min-h-[50vh] sm:min-h-[60vh] md:min-h-[70vh] flex items-center justify-center px-5 sm:px-8 py-14 sm:py-20 md:py-28"
                 style={{ scale, borderRadius }}
             >
                 {/* Decorative shapes */}
@@ -49,7 +49,7 @@ export default function CTASection() {
                     </motion.p>
 
                     <motion.h2
-                        className="font-serif text-4xl md:text-6xl lg:text-7xl tracking-tight leading-[1.05] mb-6"
+                        className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl tracking-tight leading-[1.05] mb-4 sm:mb-6"
                         initial={{ opacity: 0, y: 25 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -59,7 +59,7 @@ export default function CTASection() {
                     </motion.h2>
 
                     <motion.p
-                        className="text-white/60 text-lg font-medium max-w-lg mx-auto mb-10"
+                        className="text-white/60 text-base sm:text-lg font-medium max-w-lg mx-auto mb-6 sm:mb-10"
                         initial={{ opacity: 0, y: 15 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}

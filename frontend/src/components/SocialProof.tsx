@@ -10,7 +10,7 @@ function AnimatedCounter({ value, suffix = "" }: { value: number; suffix?: strin
     return (
         <motion.span
             ref={ref}
-            className="font-serif text-5xl md:text-6xl lg:text-7xl text-background tabular-nums"
+            className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-background tabular-nums"
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -35,9 +35,9 @@ export default function SocialProof() {
     const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
 
     return (
-        <section ref={sectionRef} className="pt-0 pb-16 px-6 lg:px-10 -mt-12 md:-mt-24 lg:-mt-32 relative z-20">
+        <section ref={sectionRef} className="pt-0 pb-10 sm:pb-16 px-4 sm:px-6 lg:px-10 -mt-6 sm:-mt-12 md:-mt-24 lg:-mt-32 relative z-20">
             <motion.div
-                className="max-w-[1400px] mx-auto bg-foreground rounded-[2.5rem] py-16 md:py-20 px-8 md:px-16 relative overflow-hidden"
+                className="max-w-[1400px] mx-auto bg-foreground rounded-[1.5rem] sm:rounded-[2.5rem] py-10 sm:py-16 md:py-20 px-5 sm:px-8 md:px-16 relative overflow-hidden"
                 style={{ scale }}
             >
                 {/* Subtle grain on dark surface */}
@@ -66,7 +66,7 @@ export default function SocialProof() {
                         Trusted by students
                     </motion.p>
                     <motion.h2
-                        className="font-serif text-3xl md:text-4xl text-background/90 mb-14 max-w-lg"
+                        className="font-serif text-2xl sm:text-3xl md:text-4xl text-background/90 mb-8 sm:mb-14 max-w-lg"
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -75,7 +75,7 @@ export default function SocialProof() {
                         The #1 co-op housing network in Canada.
                     </motion.h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-8">
                         {stats.map((stat, i) => (
                             <motion.div
                                 key={stat.label}

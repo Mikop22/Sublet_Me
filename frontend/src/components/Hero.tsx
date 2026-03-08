@@ -33,7 +33,7 @@ function FloatingMatchCard({ scrollProgress }: { scrollProgress: MotionValue<num
 
     return (
         <motion.div
-            className="absolute bottom-12 -left-8 lg:-left-16 z-20 bg-surface rounded-2xl p-5 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.12)] border border-warm-gray/20 w-72"
+            className="hidden sm:block absolute bottom-12 -left-8 lg:-left-16 z-20 bg-surface rounded-2xl p-5 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.12)] border border-warm-gray/20 w-72"
             style={{ y }}
             initial={{ opacity: 0, x: -30, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -64,7 +64,7 @@ function FloatingLocationBadge({ scrollProgress }: { scrollProgress: MotionValue
 
     return (
         <motion.div
-            className="absolute top-16 -right-4 lg:-right-8 z-20 bg-surface rounded-xl px-4 py-3 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.1)] border border-warm-gray/20"
+            className="hidden sm:block absolute top-16 -right-4 lg:-right-8 z-20 bg-surface rounded-xl px-4 py-3 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.1)] border border-warm-gray/20"
             style={{ y }}
             initial={{ opacity: 0, x: 20, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -99,7 +99,7 @@ export default function Hero() {
     return (
         <section
             ref={sectionRef}
-            className="relative min-h-screen flex items-center pt-8 pb-16 lg:pb-0 overflow-hidden"
+            className="relative min-h-screen flex items-center pt-20 sm:pt-8 pb-8 sm:pb-16 lg:pb-0 overflow-hidden"
         >
             {/* Soft background glow */}
             <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-accent/[0.04] rounded-full blur-[120px] pointer-events-none" />
@@ -122,7 +122,7 @@ export default function Hero() {
 
                         {/* Subtitle */}
                         <motion.p
-                            className="text-lg md:text-xl text-muted max-w-lg mx-auto lg:mx-0 leading-relaxed mb-10"
+                            className="text-base sm:text-lg md:text-xl text-muted max-w-lg mx-auto lg:mx-0 leading-relaxed mb-6 sm:mb-10"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 0.9 }}
@@ -133,7 +133,7 @@ export default function Hero() {
 
                         {/* CTAs */}
                         <motion.div
-                            className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start mb-12"
+                            className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center lg:justify-start mb-8 sm:mb-12"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, delay: 1.05 }}
@@ -156,7 +156,7 @@ export default function Hero() {
                     </div>
 
                     {/* Right Visual — 45% */}
-                    <div className="flex-1 relative w-full max-w-xl lg:max-w-none">
+                    <div className="flex-1 relative w-full max-w-sm sm:max-w-xl lg:max-w-none">
                         <motion.div
                             className="relative aspect-[3/4] lg:aspect-[4/5] rounded-[2rem] overflow-hidden"
                             initial={{ opacity: 0, scale: 0.92 }}

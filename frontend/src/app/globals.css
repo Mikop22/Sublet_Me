@@ -49,6 +49,12 @@ body {
   opacity: 0.4;
 }
 
+@media (max-width: 640px) {
+  .grain::before {
+    display: none;
+  }
+}
+
 /* Better scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

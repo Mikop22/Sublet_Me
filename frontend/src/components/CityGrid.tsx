@@ -66,10 +66,10 @@ export default function CityGrid() {
     return (
         <section className="relative">
             {/* Horizontal scroll container — decreased height to 140vh to reduce scrolling dead space below the images */}
-            <div ref={containerRef} className="h-[140vh] relative">
-                <div className="sticky top-0 h-screen overflow-hidden flex flex-col pt-24 lg:pt-28">
+            <div ref={containerRef} className="h-[100vh] sm:h-[120vh] md:h-[140vh] relative">
+                <div className="sticky top-0 h-screen overflow-hidden flex flex-col pt-20 sm:pt-24 lg:pt-28">
                     {/* Header inside sticky area */}
-                    <div className="max-w-[1400px] px-6 lg:px-10 pb-14">
+                    <div className="max-w-[1400px] px-6 lg:px-10 pb-8 sm:pb-14">
                         <motion.p
                             className="text-accent font-semibold text-sm tracking-widest uppercase mb-4"
                             initial={{ opacity: 0, y: 20 }}
@@ -80,7 +80,7 @@ export default function CityGrid() {
                             Where to next
                         </motion.p>
                         <motion.h2
-                            className="font-serif text-4xl md:text-5xl lg:text-6xl tracking-tight leading-[0.95] text-foreground"
+                            className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight leading-[0.95] text-foreground"
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -127,7 +127,7 @@ export default function CityGrid() {
 function CityPanel({ city, index }: { city: typeof cities[0]; index: number }) {
     return (
         <motion.div
-            className="flex-shrink-0 w-[65vw] md:w-[40vw] lg:w-[30vw] h-[60vh] relative rounded-[2rem] overflow-hidden cursor-pointer group"
+            className="flex-shrink-0 w-[75vw] sm:w-[65vw] md:w-[40vw] lg:w-[30vw] h-[45vh] sm:h-[55vh] md:h-[60vh] relative rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden cursor-pointer group"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "0px -100px" }}
@@ -145,7 +145,7 @@ function CityPanel({ city, index }: { city: typeof cities[0]; index: number }) {
             {/* Giant outlined city name — the editorial signature */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
                 <span
-                    className="font-serif text-[12rem] md:text-[16rem] lg:text-[20rem] leading-none select-none text-transparent uppercase tracking-tighter opacity-20 group-hover:opacity-30 transition-opacity duration-700"
+                    className="font-serif text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] leading-none select-none text-transparent uppercase tracking-tighter opacity-20 group-hover:opacity-30 transition-opacity duration-700"
                     style={{
                         WebkitTextStroke: "2px rgba(255,255,255,0.6)",
                     }}
@@ -155,18 +155,18 @@ function CityPanel({ city, index }: { city: typeof cities[0]; index: number }) {
             </div>
 
             {/* Bottom content */}
-            <div className="absolute bottom-0 left-0 right-0 p-7 md:p-9 z-10">
+            <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7 md:p-9 z-10">
                 <div className="flex items-end justify-between">
                     <div>
-                        <p className="text-white/50 text-xs font-semibold uppercase tracking-[0.2em] mb-2">
+                        <p className="text-white/50 text-xs font-semibold uppercase tracking-[0.2em] mb-1 sm:mb-2">
                             {city.label}
                         </p>
-                        <h3 className="font-serif text-white text-4xl md:text-5xl leading-none tracking-tight">
+                        <h3 className="font-serif text-white text-3xl sm:text-4xl md:text-5xl leading-none tracking-tight">
                             {city.name}
                         </h3>
                     </div>
                     <div className="text-right">
-                        <span className="text-white/80 text-2xl md:text-3xl font-serif">
+                        <span className="text-white/80 text-xl sm:text-2xl md:text-3xl font-serif">
                             {city.listings}
                         </span>
                         <p className="text-white/40 text-xs font-medium mt-0.5">sublets</p>
