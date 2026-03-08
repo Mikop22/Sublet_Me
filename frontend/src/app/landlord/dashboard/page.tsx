@@ -135,30 +135,32 @@ export default function LandlordDashboardPage() {
 
           {/* Add listing card */}
           <Reveal delay={LISTINGS.length * 0.07}>
-            <motion.div
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
-              className="rounded-2xl border-2 border-dashed border-warm-gray/15 flex items-center justify-center cursor-pointer hover:border-warm-gray/30 transition-colors group min-h-[320px]"
-            >
-              <div className="text-center">
-                <div className="w-12 h-12 rounded-full bg-warm-gray/8 flex items-center justify-center mx-auto mb-3 group-hover:bg-warm-gray/15 transition-colors">
-                  <svg
-                    className="w-6 h-6 text-muted"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
-                  </svg>
+            <Link href="/landlord/dashboard/new">
+              <motion.div
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
+                className="rounded-2xl border-2 border-dashed border-warm-gray/15 flex items-center justify-center cursor-pointer hover:border-warm-gray/30 transition-colors group min-h-[320px]"
+              >
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-warm-gray/8 flex items-center justify-center mx-auto mb-3 group-hover:bg-warm-gray/15 transition-colors">
+                    <svg
+                      className="w-6 h-6 text-muted"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-muted">Add listing</p>
                 </div>
-                <p className="text-sm font-medium text-muted">Add listing</p>
-              </div>
-            </motion.div>
+              </motion.div>
+            </Link>
           </Reveal>
         </div>
       </section>
